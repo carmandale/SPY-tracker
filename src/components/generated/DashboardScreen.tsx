@@ -250,8 +250,28 @@ export function DashboardScreen() {
         return <Minus className="w-4 h-4 text-[#A7B3C5]" />;
     }
   };
-  const rangeHitPercentage = 73;
-  const medianAbsError = 1.25;
+  const [rangeHitPercentage, setRangeHitPercentage] = useState<number | null>(null);
+  const [medianAbsError, setMedianAbsError] = useState<number | null>(null);
+
+  // Load metrics
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        const resp = await fetch(`http://localhost:8000/metrics`);
+        if (!resp.ok) return;
+        const m = await resp.json();
+        if (typeof m.rangeHit20 === 'number') {
+          setRangeHitPercentage(Math.round(m.rangeHit20 * 100));
+        }
+        if (typeof m.medianAbsErr20 === 'number') {
+          setMedianAbsError(Number(m.medianAbsErr20.toFixed(2)));
+        }
+      } catch (e) {
+        console.error('Failed to load metrics', e);
+      }
+    };
+    loadMetrics();
+  }, []);
   return <div className="p-4 space-y-6">
       {/* Prediction Card */}
       <motion.div initial={{
@@ -451,11 +471,11 @@ export function DashboardScreen() {
         <div className="flex items-center justify-between mb-3">
           <div className="text-center">
             <p className="text-xs text-[#A7B3C5] mb-1">Range Hit %</p>
-            <p className="text-lg font-mono font-bold text-[#16A34A]">{rangeHitPercentage}%</p>
+            <p className="text-lg font-mono font-bold text-[#16A34A]">{rangeHitPercentage ?? '--'}%</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-[#A7B3C5] mb-1">Median Abs Error</p>
-            <p className="text-lg font-mono font-bold text-[#E8ECF2]">${medianAbsError}</p>
+            <p className="text-lg font-mono font-bold text-[#E8ECF2]">${medianAbsError ?? '--'}</p>
           </div>
         </div>
         
