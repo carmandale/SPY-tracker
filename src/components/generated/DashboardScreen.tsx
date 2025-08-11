@@ -23,8 +23,8 @@ interface OptionsSetup {
 }
 export function DashboardScreen() {
   const [prediction, setPrediction] = useState<PredictionData>({
-    low: 582.50,
-    high: 587.25,
+    low: 635.00,
+    high: 639.00,
     bias: 'neutral',
     notes: 'Loading...'
   });
@@ -160,21 +160,21 @@ export function DashboardScreen() {
   const optionsSetups: OptionsSetup[] = [{
     type: 'Iron Condor',
     expiration: '0DTE',
-    strikes: '580/582.5/587/589.5',
+    strikes: '633/635/639/641',
     delta: '±15Δ',
     wings: '$2.50',
     targetCredit: '$0.85'
   }, {
     type: 'Iron Butterfly',
     expiration: '1W',
-    strikes: '584.5/584.5/584.5',
+    strikes: '637/637/637',
     delta: '±20Δ',
     wings: '$3.00',
     targetCredit: '$1.25'
   }, {
     type: 'Iron Condor',
     expiration: '1M',
-    strikes: '575/580/590/595',
+    strikes: '628/633/641/646',
     delta: '±25Δ',
     wings: '$5.00',
     targetCredit: '$2.10'
