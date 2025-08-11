@@ -79,12 +79,8 @@ def create_or_update_prediction(payload: DailyPredictionCreate, db: Session = De
         pred = DailyPrediction(date=payload.date)
         db.add(pred)
 
-    # Map keyLevels list to comma-separated string
+    # Apply all data directly (keyLevels is now a string)
     data = payload.model_dump()
-    key_levels_list = data.pop("keyLevels", None)
-    if key_levels_list is not None:
-        data["keyLevels"] = ",".join(str(x) for x in key_levels_list)
-
     for k, v in data.items():
         setattr(pred, k, v)
 
