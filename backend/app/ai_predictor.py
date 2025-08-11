@@ -164,7 +164,7 @@ Provide predictions in this exact JSON format:
                     {"role": "user", "content": user_prompt}
                 ],
                 "temperature": 0.3,
-                "max_tokens": 2000,  # Use max_tokens, not max_completion_tokens
+                "max_completion_tokens": 2000,  # GPT-5 requires max_completion_tokens
                 "response_format": {"type": "json_object"}
             }
             
