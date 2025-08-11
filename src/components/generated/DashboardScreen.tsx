@@ -317,7 +317,10 @@ export function DashboardScreen() {
               fontSize: 12,
               fill: '#A7B3C5'
             }} />
-              <YAxis domain={[580, 590]} axisLine={false} tickLine={false} tick={{
+              <YAxis domain={[
+              Math.floor(prediction.low - 2), 
+              Math.ceil(prediction.high + 2)
+            ]} axisLine={false} tickLine={false} tick={{
               fontSize: 12,
               fill: '#A7B3C5'
             }} />
