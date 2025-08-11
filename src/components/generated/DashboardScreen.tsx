@@ -69,39 +69,6 @@ export function DashboardScreen() {
               notes: data.notes || 'No notes available'
             });
             setDataSource('📝 Manual Prediction');
-          } else {
-            // No manual predictions, try AI predictions
-            console.log('No manual predictions, trying AI predictions...');
-            const aiResponse = await fetch(`http://localhost:8000/ai/predictions/${today}`);
-            if (aiResponse.ok) {
-              const aiData = await aiResponse.json();
-              console.log('AI predictions received:', aiData);
-              
-              // Extract predicted prices for low/high
-              const prices = aiData.predictions.map((p: any) => p.predicted_price);
-              const low = Math.min(...prices);
-              const high = Math.max(...prices);
-              
-              setPrediction({
-                low: low,
-                high: high,
-                bias: 'neutral',
-                notes: aiData.market_context || 'AI Prediction'
-              });
-              setDataSource('🤖 AI Prediction (o1-mini)');
-              setAiAnalysis(aiData.analysis || null);
-              
-              // Update price predictions
-              setKeyTimes(prev => prev.map(item => {
-                const pred = aiData.predictions.find((p: any) => 
-                  p.checkpoint.toLowerCase() === item.label.toLowerCase() ||
-                  (p.checkpoint === 'twoPM' && item.label === '2:00')
-                );
-                return { ...item, price: pred?.predicted_price || null };
-              }));
-            } else {
-              setDataSource('❌ No Data Available');
-            }
           }
 
           // Update price data
@@ -123,6 +90,39 @@ export function DashboardScreen() {
             }
             return { ...item, price };
           }));
+        } else {
+          // No manual data, try AI predictions
+          console.log('No manual data found, fetching AI predictions...');
+          const aiResponse = await fetch(`http://localhost:8000/ai/predictions/${today}`);
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            console.log('AI predictions received:', aiData);
+            
+            // Extract predicted prices for low/high
+            const prices = aiData.predictions.map((p: any) => p.predicted_price);
+            const low = Math.min(...prices);
+            const high = Math.max(...prices);
+            
+            setPrediction({
+              low: low,
+              high: high,
+              bias: 'neutral',
+              notes: aiData.market_context || 'AI Prediction'
+            });
+            setDataSource('🤖 AI Prediction (o1-mini)');
+            setAiAnalysis(aiData.analysis || null);
+            
+            // Update price predictions
+            setKeyTimes(prev => prev.map(item => {
+              const pred = aiData.predictions.find((p: any) => 
+                p.checkpoint.toLowerCase() === item.label.toLowerCase() ||
+                (p.checkpoint === 'twoPM' && item.label === '2:00')
+              );
+              return { ...item, price: pred?.predicted_price || null };
+            }));
+          } else {
+            setDataSource('❌ No Data Available');
+          }
         }
       } catch (error) {
         console.error('Error loading today\'s data:', error);
