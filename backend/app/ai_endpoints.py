@@ -28,9 +28,9 @@ class DayPredictionsResponse(BaseModel):
     """API response for a full day's AI predictions."""
     date: str
     market_context: str
-    pre_market_price: float = None
+    pre_market_price: Optional[float] = None
     predictions: List[AIPredictionResponse]
-    accuracy_summary: Dict[str, Any] = None
+    accuracy_summary: Optional[Dict[str, Any]] = None
 
 
 def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)) -> DayPredictionsResponse:
