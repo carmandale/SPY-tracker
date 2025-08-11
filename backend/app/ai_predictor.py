@@ -145,7 +145,7 @@ Provide predictions in this exact JSON format:
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",  # Use GPT-4 Turbo for best performance
+                model="o1-pro",  # Use GPT-5 Pro for advanced reasoning
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
