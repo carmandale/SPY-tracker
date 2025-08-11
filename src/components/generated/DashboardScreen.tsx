@@ -29,6 +29,7 @@ export function DashboardScreen() {
     notes: 'Loading data...'
   });
   const [dataSource, setDataSource] = useState<string>('Loading...');
+  const [locked, setLocked] = useState<boolean>(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
@@ -68,7 +69,13 @@ export function DashboardScreen() {
               bias: data.bias || 'neutral',
               notes: data.notes || 'No notes available'
             });
-            setDataSource('📝 Manual Prediction');
+            // Set badge based on source/locked
+            if (data.source === 'ai') {
+              setDataSource('🤖 AI Prediction');
+            } else {
+              setDataSource('📝 Manual Prediction');
+            }
+            setLocked(!!data.locked);
           }
 
           // Update price data
@@ -109,8 +116,9 @@ export function DashboardScreen() {
               bias: 'neutral',
               notes: aiData.market_context || 'AI Prediction'
             });
-            setDataSource('🤖 AI Prediction (GPT-5)');
-            setAiAnalysis(aiData.analysis || null);
+            setDataSource('🤖 AI Prediction');
+            setAiAnalysis(aiData.market_context || null);
+            setLocked(true);
             
             // Update price predictions with proper rounding
             setKeyTimes(prev => prev.map(item => {
@@ -259,6 +267,11 @@ export function DashboardScreen() {
             <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full font-medium">
               {dataSource}
             </span>
+            {locked && (
+              <span className="ml-2 px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">
+                Locked
+              </span>
+            )}
           </div>
           {getBiasIcon(prediction.bias)}
         </div>

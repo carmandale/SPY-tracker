@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Calendar, Target, CheckCircle, XCircle, Filter } from 'lucide-react';
 interface HistoricalPrediction {
@@ -18,7 +18,44 @@ type FilterType = 'all' | 'hits' | 'misses' | 'week' | 'month';
 export function HistoryScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const historicalData: HistoricalPrediction[] = [{
+  const [historicalData, setHistoricalData] = useState<HistoricalPrediction[]>([]);
+
+  useEffect(() => {
+    // Fetch last 20 days from API
+    const load = async () => {
+      try {
+        const today = new Date();
+        const items: HistoricalPrediction[] = [];
+        for (let i = 0; i < 20; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          const iso = d.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+          const resp = await fetch(`http://localhost:8000/day/${iso}`);
+          if (!resp.ok) continue;
+          const data = await resp.json();
+          items.push({
+            id: String(data.id),
+            date: data.date,
+            low: data.predLow ?? 0,
+            high: data.predHigh ?? 0,
+            bias: (data.bias || 'neutral') as any,
+            actualLow: data.realizedLow ?? data.low ?? 0,
+            actualHigh: data.realizedHigh ?? data.high ?? 0,
+            rangeHit: !!data.rangeHit,
+            notes: data.notes || data.volCtx || '',
+            dayType: (data.dayType || 'normal') as any,
+            error: data.absErrorToClose ?? 0,
+          });
+        }
+        setHistoricalData(items);
+      } catch (e) {
+        console.error('Failed to load history', e);
+      }
+    };
+    load();
+  }, []);
+
+  const staticData: HistoricalPrediction[] = [{
     id: '1',
     date: '2024-01-15',
     low: 582.50,
@@ -100,7 +137,7 @@ export function HistoryScreen() {
     label: 'This Month',
     count: historicalData.length
   }] as any[];
-  const filteredData = historicalData.filter(item => {
+  const filteredData = (historicalData.length ? historicalData : staticData).filter(item => {
     switch (filter) {
       case 'hits':
         return item.rangeHit;

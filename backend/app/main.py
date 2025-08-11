@@ -45,6 +45,8 @@ def _serialize_prediction(pred: DailyPrediction) -> DailyPredictionRead:
         preMarket=pred.preMarket,
         predLow=pred.predLow,
         predHigh=pred.predHigh,
+        source=pred.source,
+        locked=pred.locked,
         bias=pred.bias,
         volCtx=pred.volCtx,
         dayType=pred.dayType,
