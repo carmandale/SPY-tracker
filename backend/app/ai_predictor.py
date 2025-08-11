@@ -151,16 +151,44 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Use GPT-4o which we confirmed works
-            response = self.client.chat.completions.create(
-                model="gpt-4o",  # Using GPT-4o for reliable predictions
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=1000
-            )
+            # Try GPT-5 with high reasoning and more tokens
+            try:
+                print("🤖 Attempting GPT-5 with high reasoning...")
+                response = self.client.chat.completions.create(
+                    model="gpt-5",  # Use GPT-5 as requested
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    reasoning_effort="high",  # High reasoning for deep analysis
+                    max_completion_tokens=2000  # Increased tokens as requested
+                )
+                
+                # Report token usage
+                if hasattr(response, 'usage'):
+                    print(f"📊 Token Usage Report:")
+                    print(f"   - Prompt tokens: {response.usage.prompt_tokens}")
+                    print(f"   - Completion tokens: {response.usage.completion_tokens}")
+                    if hasattr(response.usage, 'completion_tokens_details'):
+                        details = response.usage.completion_tokens_details
+                        print(f"   - Reasoning tokens: {getattr(details, 'reasoning_tokens', 0)}")
+                        print(f"   - Output tokens: {response.usage.completion_tokens - getattr(details, 'reasoning_tokens', 0)}")
+                    print(f"   - Total tokens: {response.usage.total_tokens}")
+                
+            except Exception as gpt5_error:
+                print(f"❌ GPT-5 failed: {gpt5_error}")
+                print("📱 Falling back to GPT-4o...")
+                
+                # Fallback to GPT-4o
+                response = self.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
+                )
             
             # Parse the JSON response
             raw_content = response.choices[0].message.content.strip()
