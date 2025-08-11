@@ -1,54 +1,147 @@
-# React + TypeScript + Vite
+# SPY TA Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Mobile-first options trading assistant for tracking SPY predictions and generating iron condor/butterfly suggestions.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
+- Node.js 18+ and Yarn
+- Python 3.10+ and uv
+- Git
 
-## Expanding the ESLint configuration
+### Installation
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd SPY-tracker
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-});
+2. Install frontend dependencies:
+```bash
+yarn install
 ```
+
+3. Install backend dependencies:
+```bash
+cd backend
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip sync requirements.txt
+cd ..
+```
+
+### Running the Application
+
+Open two terminal windows:
+
+**Terminal 1 - Frontend (Port 3000):**
+```bash
+yarn dev
+```
+
+**Terminal 2 - Backend (Port 8000):**
+```bash
+cd backend
+uv run uvicorn app.main:app --reload --reload-exclude .venv --reload-dir app --host 127.0.0.1 --port 8000
+```
+
+Access the application at http://localhost:3000
+
+## Tech Stack
+
+### Frontend
+- **Framework:** React 19 with TypeScript
+- **Build Tool:** Vite
+- **Styling:** Tailwind CSS v4
+- **Charts:** Recharts (not Chart.js)
+- **UI Components:** shadcn/ui
+- **Package Manager:** Yarn
+
+### Backend
+- **Framework:** FastAPI
+- **Database:** SQLite with SQLAlchemy
+- **Scheduler:** APScheduler (CST/CDT timezone)
+- **Package Manager:** uv (not pip)
+- **Market Data:** yfinance (future integration)
+
+## Project Structure
+
+```
+SPY-tracker/
+├── src/                    # React frontend source
+│   ├── components/         # UI components
+│   ├── hooks/             # Custom React hooks
+│   └── lib/               # Utilities
+├── backend/               # FastAPI backend
+│   ├── app/              # Application code
+│   │   ├── main.py       # API endpoints
+│   │   ├── models.py     # Database models
+│   │   ├── scheduler.py  # Market hours scheduler
+│   │   └── suggestions.py # Options strategy logic
+│   └── requirements.txt   # Python dependencies
+├── .agent-os/            # Agent OS documentation
+│   └── product/          # Product specs and roadmap
+└── package.json          # Frontend dependencies
+```
+
+## Features
+
+### Current (Phase 0 - Complete)
+- ✅ Project scaffolding with monorepo structure
+- ✅ FastAPI backend with SQLAlchemy models
+- ✅ APScheduler for market hours (CST)
+- ✅ Core API endpoints
+- ✅ Initial React component structure
+
+### In Progress (Phase 1 - MVP)
+- 🚧 Morning prediction entry form
+- 🚧 Price capture (manual and automated)
+- 🚧 Chart visualization of predictions vs actuals
+- 🚧 Dashboard with current day view
+
+### Planned
+- Phase 2: IC/IB suggestions engine
+- Phase 3: Performance metrics and calibration
+- Phase 4: Live market data integration
+- Phase 5: Production deployment
+
+## API Documentation
+
+When the backend is running, view interactive API docs at:
+- http://localhost:8000/docs (Swagger UI)
+- http://localhost:8000/redoc (ReDoc)
+
+## Development
+
+### Package Managers (Important\!)
+- **Frontend:** Use `yarn` (not npm)
+- **Backend:** Use `uv` (not pip)
+
+### Environment Files
+- Frontend: `.env.local` (PORT=3000)
+- Backend: `backend/.env` (see backend/.env.example)
+
+### Git Workflow
+- All work must be linked to GitHub issues
+- Use conventional commits: `feat:`, `fix:`, `chore:`, etc.
+- Create PRs for all changes
+
+## Agent OS Integration
+
+This project uses Agent OS for structured development. See:
+- `.agent-os/product/` - Product documentation
+- `CLAUDE.md` - AI assistant instructions
+
+To create a new feature spec:
+```
+/create-spec
+```
+
+## License
+
+Private - All rights reserved
+
+## Support
+
+For issues or questions, create a GitHub issue.

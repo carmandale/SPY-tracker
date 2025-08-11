@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./spy_tracker.db"
     timezone: str = "America/Chicago"
     symbol: str = "SPY"
+    frontend_origin: str = "*"
 
     class Config:
         env_file = ".env"
