@@ -32,9 +32,16 @@ The following features have been implemented:
 
 ### Should-Have Features
 
-- [ ] Pre-market price snapshot - Capture at 8:00 AM CST `S`
+- [x] Pre-market price snapshot - Real SPY data via yfinance `S`
 - [ ] Automated scheduled price capture - Replace manual with scheduled jobs `M`
-- [ ] Range hit calculation - Score prediction accuracy `S`
+- [x] Range hit calculation - Score prediction accuracy `S`
+
+### AI Enhancement (Added)
+
+- [x] GPT-5 powered price predictions - AI predicts Open/Noon/2PM/Close with reasoning `L`
+- [x] Confidence scoring - Each prediction has confidence level `S`
+- [x] Accuracy tracking - Compare AI predictions vs actual prices `M`
+- [x] API endpoints for AI predictions - Full REST API integration `M`
 
 ### Dependencies
 
