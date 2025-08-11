@@ -93,13 +93,53 @@ export function DashboardScreen() {
     wings: '$5.00',
     targetCredit: '$2.10'
   }];
-  const handlePriceUpdate = (index: number) => {
-    // Simulate price update with haptic feedback
-    const newPrice = 583.50 + Math.random() * 3;
-    setKeyTimes(prev => prev.map((item, i) => i === index ? {
-      ...item,
-      price: Number(newPrice.toFixed(2))
-    } : item));
+  const handlePriceUpdate = async (index: number) => {
+    const checkpoint = keyTimes[index];
+    const checkpointName = checkpoint.label.toLowerCase() === '2:00' ? 'twoPM' : checkpoint.label.toLowerCase();
+    
+    // Prompt user for price input
+    const priceInput = window.prompt(`Enter ${checkpoint.label} price for SPY:`, '');
+    if (!priceInput) return;
+    
+    const price = parseFloat(priceInput);
+    if (isNaN(price) || price <= 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+
+    try {
+      // Get current date in CST timezone
+      const today = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'America/Chicago'
+      });
+
+      // Call the backend API
+      const response = await fetch(`http://localhost:8000/capture/${today}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          checkpoint: checkpointName,
+          price: price
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Update the UI with the captured price
+      setKeyTimes(prev => prev.map((item, i) => i === index ? {
+        ...item,
+        price: price
+      } : item));
+
+      console.log(`Price captured: ${checkpoint.label} = $${price}`);
+    } catch (error) {
+      console.error('Error capturing price:', error);
+      alert('Failed to capture price. Please try again.');
+    }
   };
   const handleUpdateOptions = async () => {
     setIsUpdatingOptions(true);
