@@ -152,36 +152,30 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Use GPT-4o with enhanced analysis prompting
-            print("🤖 Using GPT-4o for predictions with deep analysis...")
-            
-            # Enhanced system prompt for deeper reasoning
-            enhanced_system_prompt = f"""{system_prompt}
-
-IMPORTANT: Include a detailed "analysis" field in your JSON response that explains your reasoning process, including:
-- Technical pattern analysis
-- Support/resistance levels
-- Market sentiment factors
-- Volatility considerations
-- Risk factors
-
-This analysis will be shown to the user on the prediction page."""
+            # Use GPT-5 with high reasoning for best analysis
+            print("🤖 Using GPT-5 with high reasoning for SPY predictions...")
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
-                    {"role": "system", "content": enhanced_system_prompt},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3,
-                max_tokens=2000  # Increased for detailed analysis
+                reasoning_effort="high",  # High reasoning for deep market analysis
+                max_completion_tokens=5000  # More tokens to ensure output after reasoning
             )
             
             # Report token usage
             if hasattr(response, 'usage'):
-                print(f"📊 Token Usage Report:")
+                print(f"📊 GPT-5 Token Usage Report:")
                 print(f"   - Prompt tokens: {response.usage.prompt_tokens}")
                 print(f"   - Completion tokens: {response.usage.completion_tokens}")
+                if hasattr(response.usage, 'completion_tokens_details'):
+                    details = response.usage.completion_tokens_details
+                    reasoning_tokens = getattr(details, 'reasoning_tokens', 0)
+                    output_tokens = response.usage.completion_tokens - reasoning_tokens
+                    print(f"   - Reasoning tokens: {reasoning_tokens}")
+                    print(f"   - Output tokens: {output_tokens}")
                 print(f"   - Total tokens: {response.usage.total_tokens}")
             
             # Parse the JSON response
