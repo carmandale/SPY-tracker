@@ -11,7 +11,7 @@ class DailyPredictionBase(BaseModel):
     bias: Optional[str] = None
     volCtx: Optional[str] = None
     dayType: Optional[str] = None
-    keyLevels: Optional[List[float]] = Field(default=None, description="List of key price levels")
+    keyLevels: Optional[str] = Field(default=None, description="Key levels as text (e.g., '580 support, 585 resistance')")
     notes: Optional[str] = None
     open: Optional[float] = None
     noon: Optional[float] = None
