@@ -151,45 +151,37 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Try GPT-5 with high reasoning and more tokens
-            try:
-                print("🤖 Attempting GPT-5...")
-                # First try without reasoning_effort to see if it outputs
-                response = self.client.chat.completions.create(
-                    model="gpt-5",  # Use GPT-5 as requested
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    # Test without reasoning_effort to see if we get output
-                    max_completion_tokens=2000  # Increased tokens as requested
-                )
-                
-                # Report token usage
-                if hasattr(response, 'usage'):
-                    print(f"📊 Token Usage Report:")
-                    print(f"   - Prompt tokens: {response.usage.prompt_tokens}")
-                    print(f"   - Completion tokens: {response.usage.completion_tokens}")
-                    if hasattr(response.usage, 'completion_tokens_details'):
-                        details = response.usage.completion_tokens_details
-                        print(f"   - Reasoning tokens: {getattr(details, 'reasoning_tokens', 0)}")
-                        print(f"   - Output tokens: {response.usage.completion_tokens - getattr(details, 'reasoning_tokens', 0)}")
-                    print(f"   - Total tokens: {response.usage.total_tokens}")
-                
-            except Exception as gpt5_error:
-                print(f"❌ GPT-5 failed: {gpt5_error}")
-                print("📱 Falling back to GPT-4o...")
-                
-                # Fallback to GPT-4o
-                response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.3,
-                    max_tokens=2000
-                )
+            # Use GPT-4o with enhanced analysis prompting
+            print("🤖 Using GPT-4o for predictions with deep analysis...")
+            
+            # Enhanced system prompt for deeper reasoning
+            enhanced_system_prompt = f"""{system_prompt}
+
+IMPORTANT: Include a detailed "analysis" field in your JSON response that explains your reasoning process, including:
+- Technical pattern analysis
+- Support/resistance levels
+- Market sentiment factors
+- Volatility considerations
+- Risk factors
+
+This analysis will be shown to the user on the prediction page."""
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": enhanced_system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=2000  # Increased for detailed analysis
+            )
+            
+            # Report token usage
+            if hasattr(response, 'usage'):
+                print(f"📊 Token Usage Report:")
+                print(f"   - Prompt tokens: {response.usage.prompt_tokens}")
+                print(f"   - Completion tokens: {response.usage.completion_tokens}")
+                print(f"   - Total tokens: {response.usage.total_tokens}")
             
             # Parse the JSON response
             raw_content = response.choices[0].message.content.strip()
