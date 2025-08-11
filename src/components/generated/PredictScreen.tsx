@@ -1,106 +1,40 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Save, TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle } from 'lucide-react';
-interface PredictionForm {
-  low: string;
-  high: string;
-  bias: 'bullish' | 'bearish' | 'neutral';
-  volumeContext: string;
-  dayType: 'opex' | 'fomc' | 'earnings' | 'normal';
-  keyLevels: string;
-  notes: string;
-  preMarket: boolean;
-}
+import { PredictionForm } from '@/components/PredictionForm';
+import { PredictionFormData } from '@/lib/schemas';
+
 export function PredictScreen() {
-  const [form, setForm] = useState<PredictionForm>({
-    low: '',
-    high: '',
-    bias: 'neutral',
-    volumeContext: '',
-    dayType: 'normal',
-    keyLevels: '',
-    notes: '',
-    preMarket: false
-  });
-  const [errors, setErrors] = useState<Partial<PredictionForm>>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const biasOptions = [{
-    value: 'bearish',
-    label: 'Bearish',
-    icon: TrendingDown,
-    color: 'text-[#DC2626]'
-  }, {
-    value: 'neutral',
-    label: 'Neutral',
-    icon: Minus,
-    color: 'text-[#A7B3C5]'
-  }, {
-    value: 'bullish',
-    label: 'Bullish',
-    icon: TrendingUp,
-    color: 'text-[#16A34A]'
-  }] as const;
-  const dayTypeOptions = [{
-    value: 'normal',
-    label: 'Normal'
-  }, {
-    value: 'opex',
-    label: 'OpEx'
-  }, {
-    value: 'fomc',
-    label: 'FOMC'
-  }, {
-    value: 'earnings',
-    label: 'Earnings'
-  }] as const;
-  const validateForm = (): boolean => {
-    const newErrors: Partial<PredictionForm> = {};
-    if (!form.low || isNaN(Number(form.low))) {
-      newErrors.low = 'Valid low price required';
-    }
-    if (!form.high || isNaN(Number(form.high))) {
-      newErrors.high = 'Valid high price required';
-    }
-    if (form.low && form.high && Number(form.low) >= Number(form.high)) {
-      newErrors.high = 'High must be greater than low';
-    }
-    if (!form.notes.trim()) {
-      newErrors.notes = 'Notes are required';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  const handleSave = async () => {
-    if (!validateForm()) return;
-    setIsSaving(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    setShowSuccess(true);
+  const handleSubmit = async (data: PredictionFormData) => {
+    setIsLoading(true);
+    
+    try {
+      // Get current date in CST timezone
+      const today = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'America/Chicago'
+      });
 
-    // Hide success message after 3 seconds
-    setTimeout(() => setShowSuccess(false), 3000);
+      // Call the backend API
+      const response = await fetch(`http://localhost:8000/prediction/${today}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-    // Reset form
-    setForm({
-      low: '',
-      high: '',
-      bias: 'neutral',
-      volumeContext: '',
-      dayType: 'normal',
-      keyLevels: '',
-      notes: '',
-      preMarket: false
-    });
-  };
-  const getCurrentTime = () => {
-    return new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Chicago'
-    });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Prediction saved successfully:', result);
+    } catch (error) {
+      console.error('Error saving prediction:', error);
+      throw error; // Re-throw to let PredictionForm handle it
+    } finally {
+      setIsLoading(false);
+    }
   };
   return <div className="p-4 space-y-6">
       {/* Header */}
