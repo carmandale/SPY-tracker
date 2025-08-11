@@ -12,12 +12,16 @@ echo "================================================="
 # Load environment variables
 if [ -f .env ]; then
     echo "📋 Loading backend environment from .env"
-    export $(grep -v '^#' .env | xargs)
+    set -a  # automatically export all variables
+    source .env
+    set +a  # turn off auto-export
 fi
 
 if [ -f .env.local ]; then
     echo "📋 Loading frontend environment from .env.local"
-    export $(grep -v '^#' .env.local | xargs)
+    set -a  # automatically export all variables
+    source .env.local
+    set +a  # turn off auto-export
 fi
 
 # Get ports from environment or use defaults
