@@ -4,7 +4,7 @@ Demonstrates the GPT-4/5 prediction system with real data integration.
 """
 
 from datetime import date, datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
