@@ -99,7 +99,7 @@ class PredictionBodyOnly(BaseModel):
     bias: Optional[str] = None
     volCtx: Optional[str] = None
     dayType: Optional[str] = None
-    keyLevels: Optional[list[float]] = None
+    keyLevels: Optional[str] = None
     notes: Optional[str] = None
 
 
