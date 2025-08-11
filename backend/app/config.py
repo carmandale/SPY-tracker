@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     timezone: str = "America/Chicago"
     symbol: str = "SPY"
     frontend_origin: str = "*"
+    openai_api_key: str = ""
 
     class Config:
         env_file = ".env"
