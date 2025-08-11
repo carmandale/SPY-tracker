@@ -159,7 +159,7 @@ Provide predictions in this exact JSON format:
                 ],
                 reasoning_effort="high",  # Use high reasoning for Pro-level thinking
                 temperature=0.3,  # Lower temperature for more consistent predictions
-                max_tokens=1000
+                max_completion_tokens=1000  # Use max_completion_tokens for GPT-5
             )
             
             # Parse the JSON response
