@@ -23,10 +23,10 @@ interface OptionsSetup {
 }
 export function DashboardScreen() {
   const [prediction, setPrediction] = useState<PredictionData>({
-    low: 635.00,
-    high: 639.00,
+    low: 0,
+    high: 0,
     bias: 'neutral',
-    notes: 'Loading...'
+    notes: 'Loading data...'
   });
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
