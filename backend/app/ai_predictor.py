@@ -152,16 +152,18 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Use GPT-5 with high reasoning for best analysis
-            print("🤖 Using GPT-5 with high reasoning for SPY predictions...")
+            # Use o1-mini for reasoning-based analysis (GPT-5 having output issues)
+            print("🤖 Using o1-mini reasoning model for SPY predictions...")
+            
+            # o1-mini expects a single user message with the full context
+            combined_prompt = f"{system_prompt}\n\n{user_prompt}"
             
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="o1-mini",
                 messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": combined_prompt}
                 ],
-                max_tokens=1000  # Standard parameter for max tokens
+                max_completion_tokens=2000  # o1-mini uses max_completion_tokens
             )
             
             # Report token usage
