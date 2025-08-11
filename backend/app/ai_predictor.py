@@ -163,7 +163,26 @@ Provide predictions in this exact JSON format:
             )
             
             # Parse the JSON response
-            prediction_data = json.loads(response.choices[0].message.content.strip())
+            raw_content = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if raw_content.startswith("```"):
+                # Extract JSON from markdown code block
+                lines = raw_content.split('\n')
+                json_lines = []
+                in_json = False
+                for line in lines:
+                    if line.startswith("```json"):
+                        in_json = True
+                        continue
+                    elif line.startswith("```"):
+                        in_json = False
+                        continue
+                    elif in_json:
+                        json_lines.append(line)
+                raw_content = '\n'.join(json_lines)
+            
+            prediction_data = json.loads(raw_content)
             
             # Convert to PricePrediction objects
             predictions = []
