@@ -151,13 +151,15 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Use o1-mini which is working and provides good reasoning
+            # Use GPT-4o which we confirmed works
             response = self.client.chat.completions.create(
-                model="o1-mini",  # Using o1-mini for reliable predictions
+                model="gpt-4o",  # Using GPT-4o for reliable predictions
                 messages=[
-                    {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}  # o1 models don't support system role
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                max_completion_tokens=2000  # Give more tokens for output
+                temperature=0.3,
+                max_tokens=1000
             )
             
             # Parse the JSON response
