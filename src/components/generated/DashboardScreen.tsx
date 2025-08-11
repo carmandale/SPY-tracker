@@ -112,13 +112,16 @@ export function DashboardScreen() {
             setDataSource('🤖 AI Prediction (GPT-5)');
             setAiAnalysis(aiData.analysis || null);
             
-            // Update price predictions
+            // Update price predictions with proper rounding
             setKeyTimes(prev => prev.map(item => {
               const pred = aiData.predictions.find((p: any) => 
                 p.checkpoint.toLowerCase() === item.label.toLowerCase() ||
                 (p.checkpoint === 'twoPM' && item.label === '2:00')
               );
-              return { ...item, price: pred?.predicted_price || null };
+              return { 
+                ...item, 
+                price: pred?.predicted_price ? Math.round(pred.predicted_price * 100) / 100 : null 
+              };
             }));
           } else {
             setDataSource('❌ No Data Available');
