@@ -222,7 +222,9 @@ Provide predictions in this exact JSON format:
             
         except Exception as e:
             # Fallback to simple predictions if AI fails
-            print(f"AI prediction failed: {e}")
+            print(f"❌ AI prediction failed: {e}")
+            import traceback
+            traceback.print_exc()
             return self._fallback_predictions(context)
     
     def _fallback_predictions(self, context: Dict) -> List[PricePrediction]:
