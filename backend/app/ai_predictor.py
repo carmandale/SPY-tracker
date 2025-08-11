@@ -55,11 +55,13 @@ class AIPredictor:
         
         # Generate predictions using GPT-4/5
         predictions = self._get_ai_predictions(context, target_date)
-        
+        # Prefer rich AI analysis when available; fall back to concise summary
+        analysis_text = getattr(self, "last_analysis", None) or context["summary"]
+
         return DayPredictions(
             date=target_date,
             predictions=predictions,
-            market_context=context["summary"],
+            market_context=analysis_text,
             pre_market_price=context.get("pre_market_price"),
             created_at=datetime.now()
         )
@@ -183,102 +185,63 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Use exact pattern from working AI assessment service
+            # Use Chat Completions like your working service, with JSON mode + fallback
             from .config import settings
             model = settings.openai_model
             max_tokens = settings.openai_max_completion_tokens
             reasoning_effort = settings.openai_reasoning_effort
-            verbosity = settings.openai_text_verbosity
-            
-            print(f"🤖 Using {model} for SPY predictions...")
-            
-            # Note: response_format might not be supported on all models
-            # Try with response_format first, fall back if not supported
+
+            print(f"🤖 Using {model} (chat.completions) for SPY predictions...")
+
             try:
-                # Prepare API parameters - EXACTLY like working file
-                # Use Responses API for GPT-5
                 api_params = {
                     "model": model,
-                    "input": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
+                    "messages": [
+                        {"role": "system", "content": "You are an expert SPY trader. Always respond with valid JSON only."},
+                        {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"},
                     ],
-                    "reasoning": {"effort": reasoning_effort},
-                    "text": {"verbosity": verbosity},
+                    "max_completion_tokens": max_tokens,
+                    "response_format": {"type": "json_object"},
                 }
-                
-                # Add reasoning effort for GPT-5 models
-                if model.startswith('gpt-5'):
-                    api_params["max_output_tokens"] = max_tokens
-                else:
-                    api_params["max_tokens"] = max_tokens
-
-                response = self.client.responses.create(**api_params)
+                if model.startswith("gpt-5"):
+                    api_params["reasoning_effort"] = reasoning_effort
+                response = self.client.chat.completions.create(**api_params)
             except Exception as format_error:
-                error_msg = str(format_error)
-                print(f"First attempt failed: {error_msg[:150]}...")
-                
-                # Build fallback parameters
+                # Fallback without response_format
                 fallback_params = {
                     "model": model,
-                    "input": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
+                    "messages": [
+                        {"role": "system", "content": "You are an expert SPY trader. Always respond with valid JSON only."},
+                        {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"},
                     ],
+                    "max_completion_tokens": max_tokens,
                 }
-                
-                # Use correct token param for GPT-5 and handle compatibility issues
-                if model.startswith('gpt-5'):
-                    # Responses API uses max_output_tokens
-                    fallback_params["max_output_tokens"] = max_tokens
-                    fallback_params["reasoning"] = {"effort": reasoning_effort}
-                else:
-                    fallback_params["max_tokens"] = max_tokens
-                
-                # Add reasoning effort for GPT-5 models
-                # Keep verbosity low for reliability
-                fallback_params["text"] = {"verbosity": verbosity}
-                
-                # Only add response_format if it wasn't the issue
-                # Responses API JSON control is handled by prompt contract
-                
-                print("Retrying with corrected parameters...")
-                response = self.client.responses.create(**fallback_params)
-                
-                # Check for zero output tokens and retry without response_format if needed
-                # If no text output, just fall back to simple predictions
-            
-            # Report token usage
+                if model.startswith("gpt-5"):
+                    fallback_params["reasoning_effort"] = reasoning_effort
+                response = self.client.chat.completions.create(**fallback_params)
+
+            # Token usage logging (best-effort)
             try:
                 u = response.usage
-                print("📊 GPT-5 Token Usage Report:")
-                print(f"   - Prompt tokens: {getattr(u, 'input_tokens', None)}")
-                print(f"   - Output tokens: {getattr(u, 'output_tokens', None)}")
-                print(f"   - Total tokens: {getattr(u, 'total_tokens', None)}")
+                print("📊 Token Usage:")
+                print(f"   - prompt: {getattr(u, 'prompt_tokens', None)}")
+                print(f"   - completion: {getattr(u, 'completion_tokens', None)}")
+                print(f"   - total: {getattr(u, 'total_tokens', None)}")
             except Exception:
                 pass
-            
-            # Parse the JSON response
-            # Extract the text output from Responses API
+
             raw_content = None
-            try:
-                # SDK v1.46+: output_text convenience
-                raw_content = response.output_text
-            except Exception:
-                pass
+            # Prefer tool JSON if tool-choosing happened, else message.content
+            if response and getattr(response.choices[0].message, "refusal", None):
+                # If refusal, force fallback
+                raw_content = None
+            else:
+                raw_content = response.choices[0].message.content
             if not raw_content:
-                try:
-                    parts = response.output[0].content
-                    texts = [p.text for p in parts if getattr(p, 'type', '') == 'output_text' or hasattr(p, 'text')]
-                    raw_content = ''.join(texts).strip() if texts else None
-                except Exception:
-                    raw_content = None
-            if not raw_content:
-                raise ValueError("No output text from Responses API")
-            
-            # Remove markdown code blocks if present
+                raise ValueError("No content from Chat Completions API")
+
+            # Remove markdown code fences if present
             if raw_content.startswith("```"):
-                # Extract JSON from markdown code block
                 lines = raw_content.split('\n')
                 json_lines = []
                 in_json = False
@@ -291,14 +254,14 @@ Provide predictions in this exact JSON format:
                         continue
                     elif in_json:
                         json_lines.append(line)
-                raw_content = '\n'.join(json_lines)
-            
+                raw_content = '\n'.join(json_lines) or raw_content
+
             prediction_data = json.loads(raw_content)
-            
+
             # Extract analysis if present
             analysis = prediction_data.pop("analysis", "No detailed analysis provided")
             print(f"📝 Analysis extracted: {analysis[:100]}..." if len(analysis) > 100 else f"📝 Analysis: {analysis}")
-            
+
             # Convert to PricePrediction objects
             predictions = []
             for checkpoint, data in prediction_data.items():
@@ -308,10 +271,8 @@ Provide predictions in this exact JSON format:
                     confidence=float(data["confidence"]),
                     reasoning=data["reasoning"]
                 ))
-            
-            # Store the full analysis in context for later use
+
             self.last_analysis = analysis
-            
             return predictions
             
         except Exception as e:

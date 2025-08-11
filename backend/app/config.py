@@ -28,9 +28,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     ai_lookback_days: int = 5
     openai_model: str = "gpt-5"
-    openai_reasoning_effort: str = "high"
-    openai_max_completion_tokens: int = 800
+    openai_reasoning_effort: str = "minimal"
+    openai_max_completion_tokens: int = 600
     openai_text_verbosity: str = "low"  # low|medium|high (Responses API)
+    openai_temperature: float = 0.2
 
     class Config:
         env_file = ".env"
