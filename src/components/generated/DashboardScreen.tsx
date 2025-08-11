@@ -109,7 +109,7 @@ export function DashboardScreen() {
               bias: 'neutral',
               notes: aiData.market_context || 'AI Prediction'
             });
-            setDataSource('🤖 AI Prediction (o1-mini)');
+            setDataSource('🤖 AI Prediction (GPT-5)');
             setAiAnalysis(aiData.analysis || null);
             
             // Update price predictions
@@ -328,7 +328,7 @@ export function DashboardScreen() {
           <div className="flex items-center gap-2 mb-3">
             <h3 className="text-sm font-medium text-[#A7B3C5]">AI Market Analysis</h3>
             <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full">
-              o1-mini Reasoning
+              GPT-5 High Reasoning
             </span>
           </div>
           <p className="text-sm text-[#A7B3C5] bg-[#0B0D12] rounded-lg p-3 leading-relaxed">
