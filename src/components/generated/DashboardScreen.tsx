@@ -67,6 +67,7 @@ export function DashboardScreen() {
               bias: data.bias || 'neutral',
               notes: data.notes || 'No notes available'
             });
+            setDataSource('📝 Manual Prediction');
           }
 
           // Update price data
