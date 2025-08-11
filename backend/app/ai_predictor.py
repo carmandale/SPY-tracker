@@ -108,8 +108,15 @@ class AIPredictor:
     def _get_ai_predictions(self, context: Dict, target_date: date) -> List[PricePrediction]:
         """Use GPT-4/5 to generate price predictions."""
         
-        system_prompt = """You are an expert SPY (S&P 500 ETF) trader and technical analyst. 
-Your job is to predict 4 key intraday price points based on market data and analysis.
+        system_prompt = """You are an expert SPY (S&P 500 ETF) trader with advanced reasoning capabilities. 
+Use deep analytical thinking to predict 4 key intraday price points.
+
+Apply sophisticated analysis considering:
+- Multi-timeframe technical patterns and momentum
+- Market microstructure and institutional flows  
+- Volatility regime analysis and mean reversion tendencies
+- Cross-asset correlations and macro factors
+- Order flow dynamics and support/resistance levels
 
 You must respond with valid JSON containing predictions for:
 - open: Market open price (9:30 AM EST)
@@ -119,10 +126,10 @@ You must respond with valid JSON containing predictions for:
 
 For each prediction, provide:
 - predicted_price: Your price prediction (float)
-- confidence: Your confidence level 0.0-1.0 (float)
+- confidence: Your confidence level 0.0-1.0 (float) 
 - reasoning: Brief explanation (string, max 100 chars)
 
-Consider: technical levels, pre-market movement, recent volatility, volume patterns, and market sentiment."""
+Use your advanced reasoning to identify subtle patterns and provide highly calibrated predictions."""
 
         user_prompt = f"""Analyze SPY for {target_date.strftime('%Y-%m-%d')}:
 
