@@ -152,11 +152,12 @@ Provide predictions in this exact JSON format:
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-5-pro",  # Use GPT-5 Pro for advanced reasoning as requested
+                model="gpt-5",  # Use GPT-5 as requested
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
+                reasoning_effort="high",  # Use high reasoning for Pro-level thinking
                 temperature=0.3,  # Lower temperature for more consistent predictions
                 max_tokens=1000
             )
