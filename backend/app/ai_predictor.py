@@ -181,25 +181,39 @@ Provide predictions in this exact JSON format:
                 
                 response = self.client.chat.completions.create(**api_params)
             except Exception as format_error:
-                if "response_format" in str(format_error):
-                    # Retry without response_format parameter but keep reasoning
-                    fallback_params = {
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}
-                        ],
-                        "temperature": temperature,
-                        "max_tokens": max_tokens
-                    }
-                    
-                    # Add reasoning effort for GPT-5 models
-                    if model.startswith('gpt-5'):
-                        fallback_params["reasoning_effort"] = reasoning_effort
-                    
-                    response = self.client.chat.completions.create(**fallback_params)
+                error_msg = str(format_error)
+                print(f"First attempt failed: {error_msg[:150]}...")
+                
+                # Build fallback parameters
+                fallback_params = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ]
+                }
+                
+                # Handle parameter compatibility issues
+                if "max_tokens" in error_msg and "max_completion_tokens" in error_msg:
+                    # GPT-5 requires max_completion_tokens
+                    fallback_params["max_completion_tokens"] = max_tokens
+                elif "temperature" in error_msg:
+                    # Some models don't support temperature
+                    fallback_params["max_completion_tokens"] = max_tokens
                 else:
-                    raise format_error
+                    # Default fallback
+                    fallback_params["max_completion_tokens"] = max_tokens
+                
+                # Add reasoning effort for GPT-5 models
+                if model.startswith('gpt-5'):
+                    fallback_params["reasoning_effort"] = reasoning_effort
+                
+                # Only add response_format if it wasn't the issue
+                if "response_format" not in error_msg:
+                    fallback_params["response_format"] = {"type": "json_object"}
+                
+                print("Retrying with corrected parameters...")
+                response = self.client.chat.completions.create(**fallback_params)
             
             # Report token usage
             if hasattr(response, 'usage'):
