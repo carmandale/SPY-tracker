@@ -136,16 +136,33 @@ For each prediction, provide:
 
 Use your advanced reasoning to identify subtle patterns and provide highly calibrated predictions."""
 
+        # Safely format context values to handle None values
+        def safe_format_price(value, fallback="N/A"):
+            if value is None:
+                return fallback
+            try:
+                return f"${float(value):.2f}"
+            except (ValueError, TypeError):
+                return fallback
+        
+        def safe_format_percent(value, fallback="N/A"):
+            if value is None:
+                return fallback
+            try:
+                return f"{float(value):.1%}"
+            except (ValueError, TypeError):
+                return fallback
+
         user_prompt = f"""Analyze SPY for {target_date.strftime('%Y-%m-%d')}:
 
 MARKET DATA:
-- Pre-market price: ${context['pre_market_price']:.2f}
-- Previous close: ${context['previous_close']:.2f}
-- 5-day high/low: ${context['recent_high']:.2f}/${context['recent_low']:.2f}
-- Annualized volatility: {context['annualized_volatility']:.1%}
+- Pre-market price: {safe_format_price(context.get('pre_market_price'))}
+- Previous close: {safe_format_price(context.get('previous_close'))}
+- 5-day high/low: {safe_format_price(context.get('recent_high'))}/{safe_format_price(context.get('recent_low'))}
+- Annualized volatility: {safe_format_percent(context.get('annualized_volatility'))}
 
 RECENT PRICE HISTORY:
-{json.dumps(context['recent_prices'], indent=2)}
+{json.dumps(context.get('recent_prices', []), indent=2)}
 
 Provide predictions in this exact JSON format:
 {{
@@ -198,16 +215,23 @@ Provide predictions in this exact JSON format:
                     ]
                 }
                 
-                # Handle parameter compatibility issues
-                if "max_tokens" in error_msg and "max_completion_tokens" in error_msg:
-                    # GPT-5 requires max_completion_tokens
+                # Use correct token param for GPT-5 and handle compatibility issues
+                if model.startswith('gpt-5'):
+                    # GPT-5 ALWAYS requires max_completion_tokens, never max_tokens
+                    fallback_params.pop('max_tokens', None)
+                    fallback_params["max_completion_tokens"] = max_tokens
+                    # Remove temperature for GPT-5 if it caused the error
+                    if "temperature" in error_msg:
+                        fallback_params.pop("temperature", None)
+                elif "max_tokens" in error_msg and "max_completion_tokens" in error_msg:
+                    # Other models might prefer max_completion_tokens
+                    fallback_params.pop('max_tokens', None)
                     fallback_params["max_completion_tokens"] = max_tokens
                 elif "temperature" in error_msg:
                     # Some models don't support temperature
-                    fallback_params["max_completion_tokens"] = max_tokens
-                else:
-                    # Default fallback
-                    fallback_params["max_completion_tokens"] = max_tokens
+                    fallback_params.pop("temperature", None)
+                    if "max_tokens" not in fallback_params:
+                        fallback_params["max_tokens"] = max_tokens
                 
                 # Add reasoning effort for GPT-5 models
                 if model.startswith('gpt-5'):
@@ -219,6 +243,13 @@ Provide predictions in this exact JSON format:
                 
                 print("Retrying with corrected parameters...")
                 response = self.client.chat.completions.create(**fallback_params)
+                
+                # Check for zero output tokens and retry without response_format if needed
+                if (hasattr(response, 'usage') and 
+                    getattr(response.usage, 'completion_tokens', 0) == 0):
+                    print("⚠️  Zero output tokens detected, retrying without response_format...")
+                    retry_params = {k: v for k, v in fallback_params.items() if k != 'response_format'}
+                    response = self.client.chat.completions.create(**retry_params)
             
             # Report token usage
             if hasattr(response, 'usage'):
