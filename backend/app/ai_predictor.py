@@ -1,0 +1,190 @@
+"""
+AI-powered SPY price prediction system using GPT-4/5.
+Generates predictions for Open, Noon, 2PM, and Close prices based on market analysis.
+"""
+
+from datetime import datetime, date, timedelta
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+import json
+import os
+
+import yfinance as yf
+from openai import OpenAI
+
+from .config import settings
+from .providers import default_provider
+
+
+@dataclass
+class PricePrediction:
+    """Single price prediction with confidence and reasoning."""
+    checkpoint: str  # "open", "noon", "twoPM", "close"
+    predicted_price: float
+    confidence: float  # 0.0 to 1.0
+    reasoning: str
+
+
+@dataclass
+class DayPredictions:
+    """Complete set of predictions for a trading day."""
+    date: date
+    predictions: List[PricePrediction]
+    market_context: str
+    pre_market_price: Optional[float] = None
+    created_at: Optional[datetime] = None
+
+
+class AIPredictor:
+    """GPT-4/5 powered SPY price predictor."""
+    
+    def __init__(self):
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.symbol = settings.symbol
+    
+    def generate_predictions(self, target_date: date) -> DayPredictions:
+        """Generate AI predictions for a specific trading day."""
+        
+        # Gather market context
+        context = self._gather_market_context(target_date)
+        
+        # Generate predictions using GPT-4/5
+        predictions = self._get_ai_predictions(context, target_date)
+        
+        return DayPredictions(
+            date=target_date,
+            predictions=predictions,
+            market_context=context["summary"],
+            pre_market_price=context.get("pre_market_price"),
+            created_at=datetime.now()
+        )
+    
+    def _gather_market_context(self, target_date: date) -> Dict:
+        """Gather comprehensive market context for AI analysis."""
+        
+        # Get historical SPY data (last 10 trading days)
+        spy = yf.Ticker(self.symbol)
+        end_date = target_date
+        start_date = target_date - timedelta(days=15)  # Buffer for weekends
+        
+        hist = spy.history(start=start_date, end=end_date, interval="1d")
+        
+        # Get pre-market price if available
+        pre_market_price = default_provider.get_price(self.symbol)
+        
+        # Calculate key technical levels
+        recent_high = hist['High'].tail(5).max()
+        recent_low = hist['Low'].tail(5).min()
+        prev_close = hist['Close'].iloc[-1] if len(hist) > 0 else None
+        
+        # Calculate volatility indicators
+        returns = hist['Close'].pct_change().dropna()
+        volatility = returns.std() * (252 ** 0.5) if len(returns) > 1 else 0
+        
+        context = {
+            "target_date": target_date.isoformat(),
+            "pre_market_price": pre_market_price,
+            "previous_close": float(prev_close) if prev_close else None,
+            "recent_high": float(recent_high),
+            "recent_low": float(recent_low),
+            "annualized_volatility": float(volatility),
+            "recent_prices": [
+                {
+                    "date": idx.strftime("%Y-%m-%d"),
+                    "open": float(row.Open),
+                    "high": float(row.High),
+                    "low": float(row.Low),
+                    "close": float(row.Close),
+                    "volume": int(row.Volume)
+                }
+                for idx, row in hist.tail(5).iterrows()
+            ],
+            "summary": f"SPY analysis for {target_date}: Pre-market ${pre_market_price:.2f}, "
+                      f"Previous close ${prev_close:.2f}, 5-day range ${recent_low:.2f}-${recent_high:.2f}"
+        }
+        
+        return context
+    
+    def _get_ai_predictions(self, context: Dict, target_date: date) -> List[PricePrediction]:
+        """Use GPT-4/5 to generate price predictions."""
+        
+        system_prompt = """You are an expert SPY (S&P 500 ETF) trader and technical analyst. 
+Your job is to predict 4 key intraday price points based on market data and analysis.
+
+You must respond with valid JSON containing predictions for:
+- open: Market open price (9:30 AM EST)
+- noon: Midday price (12:00 PM EST) 
+- twoPM: Afternoon price (2:00 PM EST)
+- close: Market close price (4:00 PM EST)
+
+For each prediction, provide:
+- predicted_price: Your price prediction (float)
+- confidence: Your confidence level 0.0-1.0 (float)
+- reasoning: Brief explanation (string, max 100 chars)
+
+Consider: technical levels, pre-market movement, recent volatility, volume patterns, and market sentiment."""
+
+        user_prompt = f"""Analyze SPY for {target_date.strftime('%Y-%m-%d')}:
+
+MARKET DATA:
+- Pre-market price: ${context['pre_market_price']:.2f}
+- Previous close: ${context['previous_close']:.2f}
+- 5-day high/low: ${context['recent_high']:.2f}/${context['recent_low']:.2f}
+- Annualized volatility: {context['annualized_volatility']:.1%}
+
+RECENT PRICE HISTORY:
+{json.dumps(context['recent_prices'], indent=2)}
+
+Provide predictions in this exact JSON format:
+{{
+  "open": {{"predicted_price": 580.50, "confidence": 0.75, "reasoning": "Gap up on pre-market strength"}},
+  "noon": {{"predicted_price": 582.25, "confidence": 0.70, "reasoning": "Continued momentum into lunch"}},
+  "twoPM": {{"predicted_price": 581.80, "confidence": 0.65, "reasoning": "Slight pullback on profit taking"}},
+  "close": {{"predicted_price": 583.10, "confidence": 0.72, "reasoning": "End of day buying interest"}}
+}}"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o",  # Use GPT-4 Turbo for best performance
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,  # Lower temperature for more consistent predictions
+                max_tokens=1000
+            )
+            
+            # Parse the JSON response
+            prediction_data = json.loads(response.choices[0].message.content.strip())
+            
+            # Convert to PricePrediction objects
+            predictions = []
+            for checkpoint, data in prediction_data.items():
+                predictions.append(PricePrediction(
+                    checkpoint=checkpoint,
+                    predicted_price=float(data["predicted_price"]),
+                    confidence=float(data["confidence"]),
+                    reasoning=data["reasoning"]
+                ))
+            
+            return predictions
+            
+        except Exception as e:
+            # Fallback to simple predictions if AI fails
+            print(f"AI prediction failed: {e}")
+            return self._fallback_predictions(context)
+    
+    def _fallback_predictions(self, context: Dict) -> List[PricePrediction]:
+        """Simple fallback predictions if AI service fails."""
+        base_price = context.get('pre_market_price') or context.get('previous_close', 580.0)
+        
+        return [
+            PricePrediction("open", base_price * 1.001, 0.5, "Fallback: slight gap"),
+            PricePrediction("noon", base_price * 1.002, 0.4, "Fallback: minor drift"),
+            PricePrediction("twoPM", base_price * 1.001, 0.4, "Fallback: consolidation"),
+            PricePrediction("close", base_price * 1.003, 0.5, "Fallback: end of day")
+        ]
+
+
+# Global instance
+ai_predictor = AIPredictor()
