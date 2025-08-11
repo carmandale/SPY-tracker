@@ -144,6 +144,7 @@ RECENT PRICE HISTORY:
 
 Provide predictions in this exact JSON format:
 {{
+  "analysis": "Your detailed market analysis explaining your reasoning, patterns identified, and key factors considered",
   "open": {{"predicted_price": 580.50, "confidence": 0.75, "reasoning": "Gap up on pre-market strength"}},
   "noon": {{"predicted_price": 582.25, "confidence": 0.70, "reasoning": "Continued momentum into lunch"}},
   "twoPM": {{"predicted_price": 581.80, "confidence": 0.65, "reasoning": "Slight pullback on profit taking"}},
