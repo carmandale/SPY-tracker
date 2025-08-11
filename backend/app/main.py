@@ -266,3 +266,27 @@ def get_metrics(db: Session = Depends(get_db)):
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
+
+
+# AI Prediction Endpoints
+from .ai_endpoints import get_ai_predictions_for_date, get_ai_accuracy_metrics, demo_ai_prediction_system
+
+@app.get("/ai/predictions/{target_date}")
+def get_ai_predictions_endpoint(target_date: date, db: Session = Depends(get_db)):
+    """Generate or retrieve AI predictions for a specific date."""
+    return get_ai_predictions_for_date(target_date, db)
+
+@app.get("/ai/accuracy")  
+def get_ai_accuracy_endpoint(db: Session = Depends(get_db)):
+    """Get AI prediction accuracy metrics."""
+    return get_ai_accuracy_metrics(db)
+
+@app.get("/ai/demo/{target_date}")
+def ai_demo_date(target_date: date, db: Session = Depends(get_db)):
+    """Demonstration of the complete AI prediction system for specific date."""
+    return demo_ai_prediction_system(target_date, db)
+
+@app.get("/ai/demo")
+def ai_demo_today(db: Session = Depends(get_db)):
+    """Demonstration of AI prediction system for today."""
+    return demo_ai_prediction_system(None, db)
