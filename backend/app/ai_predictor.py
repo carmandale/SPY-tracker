@@ -151,14 +151,15 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
+            # Combine system and user prompts for o1-pro
+            combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+            
             response = self.client.chat.completions.create(
                 model="o1-pro",  # Use GPT-5 Pro for advanced reasoning
                 messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": combined_prompt}
                 ],
-                temperature=0.3,  # Lower temperature for more consistent predictions
-                max_tokens=1000
+                # o1-pro doesn't support temperature or max_tokens parameters
             )
             
             # Parse the JSON response
