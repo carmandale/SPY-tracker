@@ -152,19 +152,37 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Use o1-mini for reasoning-based analysis (GPT-5 having output issues)
-            print("🤖 Using o1-mini reasoning model for SPY predictions...")
+            # Use GPT-5 with proper configuration based on working example
+            model = "gpt-5"
+            print(f"🤖 Using {model} for SPY predictions...")
             
-            # o1-mini expects a single user message with the full context
-            combined_prompt = f"{system_prompt}\n\n{user_prompt}"
-            
-            response = self.client.chat.completions.create(
-                model="o1-mini",
-                messages=[
-                    {"role": "user", "content": combined_prompt}
+            # Build API parameters
+            api_params = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                max_completion_tokens=2000  # o1-mini uses max_completion_tokens
-            )
+                "temperature": 0.3,
+                "max_tokens": 2000,  # Use max_tokens, not max_completion_tokens
+                "response_format": {"type": "json_object"}
+            }
+            
+            # Add reasoning effort for GPT-5 models
+            if model.startswith('gpt-5'):
+                api_params["reasoning_effort"] = "high"
+            
+            # Try with response_format first
+            try:
+                response = self.client.chat.completions.create(**api_params)
+            except Exception as format_error:
+                # If response_format not supported, retry without it
+                if "response_format" in str(format_error):
+                    print("Response format not supported, retrying without it...")
+                    del api_params["response_format"]
+                    response = self.client.chat.completions.create(**api_params)
+                else:
+                    raise format_error
             
             # Report token usage
             if hasattr(response, 'usage'):
