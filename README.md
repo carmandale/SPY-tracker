@@ -114,7 +114,7 @@ When the backend is running, view interactive API docs at:
 
 ## Development
 
-### Package Managers (Important\!)
+### Package Managers (Important!)
 - **Frontend:** Use `yarn` (not npm)
 - **Backend:** Use `uv` (not pip)
 

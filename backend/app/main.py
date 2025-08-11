@@ -24,7 +24,7 @@ from .suggestions import generate_suggestions
 app = FastAPI(title=settings.app_name)
 
 # Use FRONTEND_ORIGIN from settings
-origins = [settings.frontend_origin] if settings.frontend_origin \!= "*" else ["*"]
+origins = [settings.frontend_origin] if settings.frontend_origin != "*" else ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
