@@ -158,7 +158,7 @@ Provide predictions in this exact JSON format:
                     {"role": "user", "content": user_prompt}
                 ],
                 reasoning_effort="high",  # Use high reasoning for Pro-level thinking
-                temperature=0.3,  # Lower temperature for more consistent predictions
+                # temperature=1 is the default and only supported value for GPT-5
                 max_completion_tokens=1000  # Use max_completion_tokens for GPT-5
             )
             
