@@ -39,11 +39,6 @@ _scheduler = start_scheduler(get_db)
 
 
 def _serialize_prediction(pred: DailyPrediction) -> DailyPredictionRead:
-    key_levels_list = (
-        [float(x) for x in pred.keyLevels.split(",") if x]
-        if getattr(pred, "keyLevels", None)
-        else None
-    )
     return DailyPredictionRead(
         id=pred.id,
         date=pred.date,
@@ -53,7 +48,7 @@ def _serialize_prediction(pred: DailyPrediction) -> DailyPredictionRead:
         bias=pred.bias,
         volCtx=pred.volCtx,
         dayType=pred.dayType,
-        keyLevels=key_levels_list,
+        keyLevels=pred.keyLevels,
         notes=pred.notes,
         open=pred.open,
         noon=pred.noon,
