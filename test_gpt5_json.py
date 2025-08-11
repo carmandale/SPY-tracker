@@ -33,6 +33,9 @@ try:
     
     raw_response = response.choices[0].message.content
     print(f"\n📝 Raw response:\n{raw_response}\n")
+    print(f"Response type: {type(raw_response)}")
+    print(f"Response length: {len(raw_response) if raw_response else 0}")
+    print(f"Full response object: {response}")
     
     # Try to parse as JSON
     try:
