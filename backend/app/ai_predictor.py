@@ -206,6 +206,10 @@ This analysis will be shown to the user on the prediction page."""
             
             prediction_data = json.loads(raw_content)
             
+            # Extract analysis if present
+            analysis = prediction_data.pop("analysis", "No detailed analysis provided")
+            print(f"📝 Analysis extracted: {analysis[:100]}..." if len(analysis) > 100 else f"📝 Analysis: {analysis}")
+            
             # Convert to PricePrediction objects
             predictions = []
             for checkpoint, data in prediction_data.items():
@@ -215,6 +219,9 @@ This analysis will be shown to the user on the prediction page."""
                     confidence=float(data["confidence"]),
                     reasoning=data["reasoning"]
                 ))
+            
+            # Store the full analysis in context for later use
+            self.last_analysis = analysis
             
             return predictions
             
