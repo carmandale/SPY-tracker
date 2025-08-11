@@ -162,7 +162,7 @@ Provide predictions in this exact JSON format:
                     {"role": "user", "content": user_prompt}
                 ],
                 reasoning_effort="high",  # High reasoning for deep market analysis
-                max_completion_tokens=5000  # More tokens to ensure output after reasoning
+                max_completion_tokens=800  # Force output: ~600 reasoning + ~200 output tokens
             )
             
             # Report token usage
