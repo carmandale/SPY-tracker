@@ -8,6 +8,8 @@ class DailyPredictionBase(BaseModel):
     preMarket: Optional[float] = None
     predLow: Optional[float] = None
     predHigh: Optional[float] = None
+    source: Optional[str] = None  # 'ai' | 'manual'
+    locked: Optional[bool] = None
     bias: Optional[str] = None
     volCtx: Optional[str] = None
     dayType: Optional[str] = None
