@@ -37,3 +37,9 @@ As an experienced options trader, I want to quickly enter my daily SPY predictio
 1. Functional prediction form accessible via mobile navigation that captures all required prediction data
 2. Form validation that prevents invalid submissions and provides clear user feedback
 3. Successful integration with backend API that persists predictions and captures pre-market pricing data
+
+## Spec Documentation
+
+- Tasks: @.agent-os/specs/2025-08-11-morning-prediction-form-#1/tasks.md
+- Technical Specification: @.agent-os/specs/2025-08-11-morning-prediction-form-#1/sub-specs/technical-spec.md
+- Tests Specification: @.agent-os/specs/2025-08-11-morning-prediction-form-#1/sub-specs/tests.md
