@@ -155,7 +155,7 @@ Provide predictions in this exact JSON format:
             combined_prompt = f"{system_prompt}\n\n{user_prompt}"
             
             response = self.client.chat.completions.create(
-                model="o1-pro",  # Use GPT-5 Pro for advanced reasoning
+                model="gpt-5-pro",  # Use GPT-5 Pro for advanced reasoning
                 messages=[
                     {"role": "user", "content": combined_prompt}
                 ],
