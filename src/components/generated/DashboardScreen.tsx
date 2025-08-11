@@ -28,6 +28,7 @@ export function DashboardScreen() {
     bias: 'neutral',
     notes: 'Loading data...'
   });
+  const [dataSource, setDataSource] = useState<string>('Loading...');
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
     price: null,
