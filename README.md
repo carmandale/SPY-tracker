@@ -33,20 +33,24 @@ cd ..
 
 ### Running the Application
 
-Open two terminal windows:
-
-**Terminal 1 - Frontend (Port 3000):**
+Preferred (single command):
 ```bash
-yarn dev
+bash start.sh
 ```
 
-**Terminal 2 - Backend (Port 8000):**
-```bash
-cd backend
-uv run uvicorn app.main:app --reload --reload-exclude .venv --reload-dir app --host 127.0.0.1 --port 8000
-```
+Environment variables:
+- Backend port: `API_PORT` (default 8000)
+- Frontend port: `PORT` (default 3000)
 
-Access the application at http://localhost:3000
+The script will:
+- Load `.env` and `.env.local`
+- Create/activate `backend/.venv` via uv
+- Install backend deps via `uv pip sync pyproject.toml` (or requirements)
+- Start FastAPI and Vite in the background with reload
+
+Access:
+- Frontend: http://localhost:3000
+- Backend:  http://localhost:8000
 
 ## Tech Stack
 
