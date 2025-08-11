@@ -151,27 +151,14 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # Try GPT-5 first as requested, fallback to o1-preview if not available
-            try:
-                response = self.client.chat.completions.create(
-                    model="gpt-5",  # Use GPT-5 as requested
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    reasoning_effort="high",  # Use high reasoning for Pro-level thinking
-                    max_completion_tokens=1000  # Use max_completion_tokens for GPT-5
-                )
-            except Exception as gpt5_error:
-                print(f"GPT-5 not available ({gpt5_error}), trying o1-preview...")
-                # Fallback to o1-preview (latest reasoning model)
-                response = self.client.chat.completions.create(
-                    model="o1-preview",  # Latest OpenAI reasoning model
-                    messages=[
-                        {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}  # o1 doesn't support system role
-                    ],
-                    max_completion_tokens=1000
-                )
+            # Use o1-mini which is working and provides good reasoning
+            response = self.client.chat.completions.create(
+                model="o1-mini",  # Using o1-mini for reliable predictions
+                messages=[
+                    {"role": "user", "content": f"{system_prompt}\n\n{user_prompt}"}  # o1 models don't support system role
+                ],
+                max_completion_tokens=2000  # Give more tokens for output
+            )
             
             # Parse the JSON response
             prediction_data = json.loads(response.choices[0].message.content.strip())
