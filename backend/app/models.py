@@ -38,3 +38,19 @@ class PriceLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class AIPrediction(Base):
+    __tablename__ = "ai_predictions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, index=True, nullable=False)
+    checkpoint = Column(String, index=True, nullable=False)  # open|noon|twoPM|close
+    predicted_price = Column(Float, nullable=False)
+    confidence = Column(Float, nullable=False)  # 0.0 to 1.0
+    reasoning = Column(String, nullable=True)
+    market_context = Column(String, nullable=True)  # Summary of market conditions
+    actual_price = Column(Float, nullable=True)  # Filled when real price comes in
+    prediction_error = Column(Float, nullable=True)  # |predicted - actual|
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
