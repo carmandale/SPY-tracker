@@ -213,8 +213,128 @@ export function PredictionForm({ onSubmit, isLoading = false, onSuccess }: Predi
           )}
         </motion.div>
 
-        {/* TODO: Add remaining form sections (volCtx, dayType, keyLevels, notes) */}
-        {/* This will be completed in the next task */}
+        {/* Context & Details */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-[#12161D] rounded-xl p-4 border border-white/8 space-y-4"
+        >
+          <h2 className="text-lg font-semibold">Context & Details</h2>
+          
+          {/* Volatility Context */}
+          <div>
+            <label className="block text-sm font-medium text-[#A7B3C5] mb-2">
+              Volatility Context
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {volCtxOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => form.setValue('volCtx', option.value)}
+                  className={`p-2 rounded-lg border text-sm transition-all ${
+                    form.watch('volCtx') === option.value
+                      ? 'border-[#006072] bg-[#006072]/10 text-[#006072]'
+                      : 'border-white/8 text-[#A7B3C5] hover:border-white/20'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {form.formState.errors.volCtx && (
+              <p className="text-xs text-[#DC2626] mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {form.formState.errors.volCtx.message}
+              </p>
+            )}
+          </div>
+
+          {/* Day Type */}
+          <div>
+            <label className="block text-sm font-medium text-[#A7B3C5] mb-2">
+              Day Type
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {dayTypeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => form.setValue('dayType', option.value)}
+                  className={`p-2 rounded-lg border text-sm transition-all ${
+                    form.watch('dayType') === option.value
+                      ? 'border-[#006072] bg-[#006072]/10 text-[#006072]'
+                      : 'border-white/8 text-[#A7B3C5] hover:border-white/20'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {form.formState.errors.dayType && (
+              <p className="text-xs text-[#DC2626] mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {form.formState.errors.dayType.message}
+              </p>
+            )}
+          </div>
+
+          {/* Key Levels */}
+          <div>
+            <label className="block text-sm font-medium text-[#A7B3C5] mb-2">
+              Key Levels
+            </label>
+            <input
+              type="text"
+              {...form.register('keyLevels')}
+              className={`w-full bg-[#0B0D12] border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#006072] transition-colors ${
+                form.formState.errors.keyLevels ? 'border-[#DC2626]' : 'border-white/8'
+              }`}
+              placeholder="e.g., 580 support, 590 resistance"
+              maxLength={200}
+            />
+            {form.formState.errors.keyLevels && (
+              <p className="text-xs text-[#DC2626] mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {form.formState.errors.keyLevels.message}
+              </p>
+            )}
+            <p className="text-xs text-[#A7B3C5] mt-1">
+              {form.watch('keyLevels')?.length || 0}/200 characters
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Notes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-[#12161D] rounded-xl p-4 border border-white/8"
+        >
+          <label className="block text-lg font-semibold mb-2">
+            Analysis Notes
+          </label>
+          <textarea
+            {...form.register('notes')}
+            rows={4}
+            className={`w-full bg-[#0B0D12] border rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-[#006072] transition-colors resize-none ${
+              form.formState.errors.notes ? 'border-[#DC2626]' : 'border-white/8'
+            }`}
+            placeholder="Describe your analysis, key factors, and reasoning for this prediction..."
+            maxLength={500}
+          />
+          {form.formState.errors.notes && (
+            <p className="text-xs text-[#DC2626] mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {form.formState.errors.notes.message}
+            </p>
+          )}
+          <p className="text-xs text-[#A7B3C5] mt-1">
+            {form.watch('notes')?.length || 0}/500 characters
+          </p>
+        </motion.div>
 
         {/* Save Button */}
         <motion.button
