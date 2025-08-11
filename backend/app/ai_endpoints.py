@@ -20,8 +20,8 @@ class AIPredictionResponse(BaseModel):
     predicted_price: float
     confidence: float
     reasoning: str
-    actual_price: float = None
-    prediction_error: float = None
+    actual_price: Optional[float] = None
+    prediction_error: Optional[float] = None
 
 
 class DayPredictionsResponse(BaseModel):
