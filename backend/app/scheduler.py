@@ -11,11 +11,11 @@ from .models import DailyPrediction, PriceLog
 
 
 CHECKPOINTS = {
-    "preMarket": "30 8 * * 1-5",  # 08:30 CST
-    "open": "30 8 * * 1-5",  # same as preMarket for MVP
-    "noon": "0 12 * * 1-5",
-    "twoPM": "0 14 * * 1-5",
-    "close": "0 15 * * 1-5",
+    "preMarket": "0 8 * * 1-5",   # 08:00 CST
+    "open": "30 8 * * 1-5",       # 08:30 CST
+    "noon": "0 12 * * 1-5",       # 12:00 CST
+    "twoPM": "0 14 * * 1-5",      # 14:00 CST (2 PM)
+    "close": "0 15 * * 1-5",      # 15:00 CST (3 PM)
 }
 
 
