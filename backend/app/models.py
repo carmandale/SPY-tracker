@@ -24,6 +24,9 @@ class DailyPrediction(Base):
     realizedHigh = Column(Float, nullable=True)
     rangeHit = Column(Boolean, default=False)
     absErrorToClose = Column(Float, nullable=True)
+    # AI governance
+    source = Column(String, nullable=True)  # 'ai' | 'manual'
+    locked = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

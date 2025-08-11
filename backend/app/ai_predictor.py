@@ -47,11 +47,11 @@ class AIPredictor:
             print("⚠️  OpenAI API key not configured - AI predictions unavailable")
         self.symbol = settings.symbol
     
-    def generate_predictions(self, target_date: date) -> DayPredictions:
+    def generate_predictions(self, target_date: date, lookback_days: int = 5) -> DayPredictions:
         """Generate AI predictions for a specific trading day."""
         
         # Gather market context
-        context = self._gather_market_context(target_date)
+        context = self._gather_market_context(target_date, lookback_days=lookback_days)
         
         # Generate predictions using GPT-4/5
         predictions = self._get_ai_predictions(context, target_date)
@@ -64,13 +64,14 @@ class AIPredictor:
             created_at=datetime.now()
         )
     
-    def _gather_market_context(self, target_date: date) -> Dict:
+    def _gather_market_context(self, target_date: date, lookback_days: int = 5) -> Dict:
         """Gather comprehensive market context for AI analysis."""
         
-        # Get historical SPY data (last 10 trading days)
+        # Get historical SPY data (last N trading days)
         spy = yf.Ticker(self.symbol)
         end_date = target_date
-        start_date = target_date - timedelta(days=15)  # Buffer for weekends
+        # Multiply by 3 to buffer weekends/holidays
+        start_date = target_date - timedelta(days=lookback_days * 3)
         
         hist = spy.history(start=start_date, end=end_date, interval="1d")
         
@@ -78,14 +79,22 @@ class AIPredictor:
         pre_market_price = default_provider.get_price(self.symbol)
         
         # Calculate key technical levels
-        recent_high = hist['High'].tail(5).max()
-        recent_low = hist['Low'].tail(5).min()
+        recent_high = hist['High'].tail(lookback_days).max()
+        recent_low = hist['Low'].tail(lookback_days).min()
         prev_close = hist['Close'].iloc[-1] if len(hist) > 0 else None
         
         # Calculate volatility indicators
         returns = hist['Close'].pct_change().dropna()
         volatility = returns.std() * (252 ** 0.5) if len(returns) > 1 else 0
         
+        def safe_format_price(value, fallback="N/A"):
+            if value is None:
+                return fallback
+            try:
+                return f"${float(value):.2f}"
+            except (ValueError, TypeError):
+                return fallback
+
         context = {
             "target_date": target_date.isoformat(),
             "pre_market_price": pre_market_price,
@@ -102,10 +111,10 @@ class AIPredictor:
                     "close": float(row.Close),
                     "volume": int(row.Volume)
                 }
-                for idx, row in hist.tail(5).iterrows()
+                for idx, row in hist.tail(lookback_days).iterrows()
             ],
-            "summary": f"SPY analysis for {target_date}: Pre-market ${pre_market_price:.2f}, "
-                      f"Previous close ${prev_close:.2f}, 5-day range ${recent_low:.2f}-${recent_high:.2f}"
+            "summary": f"SPY analysis for {target_date}: Pre-market {safe_format_price(pre_market_price)}, "
+                      f"Previous close {safe_format_price(prev_close)}, {lookback_days}-day range {safe_format_price(recent_low)}-{safe_format_price(recent_high)}"
         }
         
         return context
@@ -175,10 +184,11 @@ Provide predictions in this exact JSON format:
 
         try:
             # Use exact pattern from working AI assessment service
-            model = "gpt-5"
-            temperature = 0.3
-            max_tokens = 2000
-            reasoning_effort = "high"
+            from .config import settings
+            model = settings.openai_model
+            max_tokens = settings.openai_max_completion_tokens
+            reasoning_effort = settings.openai_reasoning_effort
+            verbosity = settings.openai_text_verbosity
             
             print(f"🤖 Using {model} for SPY predictions...")
             
@@ -186,22 +196,24 @@ Provide predictions in this exact JSON format:
             # Try with response_format first, fall back if not supported
             try:
                 # Prepare API parameters - EXACTLY like working file
+                # Use Responses API for GPT-5
                 api_params = {
                     "model": model,
-                    "messages": [
+                    "input": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "response_format": {"type": "json_object"}
+                    "reasoning": {"effort": reasoning_effort},
+                    "text": {"verbosity": verbosity},
                 }
                 
                 # Add reasoning effort for GPT-5 models
                 if model.startswith('gpt-5'):
-                    api_params["reasoning_effort"] = reasoning_effort
-                
-                response = self.client.chat.completions.create(**api_params)
+                    api_params["max_output_tokens"] = max_tokens
+                else:
+                    api_params["max_tokens"] = max_tokens
+
+                response = self.client.responses.create(**api_params)
             except Exception as format_error:
                 error_msg = str(format_error)
                 print(f"First attempt failed: {error_msg[:150]}...")
@@ -209,63 +221,60 @@ Provide predictions in this exact JSON format:
                 # Build fallback parameters
                 fallback_params = {
                     "model": model,
-                    "messages": [
+                    "input": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
-                    ]
+                    ],
                 }
                 
                 # Use correct token param for GPT-5 and handle compatibility issues
                 if model.startswith('gpt-5'):
-                    # GPT-5 ALWAYS requires max_completion_tokens, never max_tokens
-                    fallback_params.pop('max_tokens', None)
-                    fallback_params["max_completion_tokens"] = max_tokens
-                    # Remove temperature for GPT-5 if it caused the error
-                    if "temperature" in error_msg:
-                        fallback_params.pop("temperature", None)
-                elif "max_tokens" in error_msg and "max_completion_tokens" in error_msg:
-                    # Other models might prefer max_completion_tokens
-                    fallback_params.pop('max_tokens', None)
-                    fallback_params["max_completion_tokens"] = max_tokens
-                elif "temperature" in error_msg:
-                    # Some models don't support temperature
-                    fallback_params.pop("temperature", None)
-                    if "max_tokens" not in fallback_params:
-                        fallback_params["max_tokens"] = max_tokens
+                    # Responses API uses max_output_tokens
+                    fallback_params["max_output_tokens"] = max_tokens
+                    fallback_params["reasoning"] = {"effort": reasoning_effort}
+                else:
+                    fallback_params["max_tokens"] = max_tokens
                 
                 # Add reasoning effort for GPT-5 models
-                if model.startswith('gpt-5'):
-                    fallback_params["reasoning_effort"] = reasoning_effort
+                # Keep verbosity low for reliability
+                fallback_params["text"] = {"verbosity": verbosity}
                 
                 # Only add response_format if it wasn't the issue
-                if "response_format" not in error_msg:
-                    fallback_params["response_format"] = {"type": "json_object"}
+                # Responses API JSON control is handled by prompt contract
                 
                 print("Retrying with corrected parameters...")
-                response = self.client.chat.completions.create(**fallback_params)
+                response = self.client.responses.create(**fallback_params)
                 
                 # Check for zero output tokens and retry without response_format if needed
-                if (hasattr(response, 'usage') and 
-                    getattr(response.usage, 'completion_tokens', 0) == 0):
-                    print("⚠️  Zero output tokens detected, retrying without response_format...")
-                    retry_params = {k: v for k, v in fallback_params.items() if k != 'response_format'}
-                    response = self.client.chat.completions.create(**retry_params)
+                # If no text output, just fall back to simple predictions
             
             # Report token usage
-            if hasattr(response, 'usage'):
-                print(f"📊 GPT-5 Token Usage Report:")
-                print(f"   - Prompt tokens: {response.usage.prompt_tokens}")
-                print(f"   - Completion tokens: {response.usage.completion_tokens}")
-                if hasattr(response.usage, 'completion_tokens_details'):
-                    details = response.usage.completion_tokens_details
-                    reasoning_tokens = getattr(details, 'reasoning_tokens', 0)
-                    output_tokens = response.usage.completion_tokens - reasoning_tokens
-                    print(f"   - Reasoning tokens: {reasoning_tokens}")
-                    print(f"   - Output tokens: {output_tokens}")
-                print(f"   - Total tokens: {response.usage.total_tokens}")
+            try:
+                u = response.usage
+                print("📊 GPT-5 Token Usage Report:")
+                print(f"   - Prompt tokens: {getattr(u, 'input_tokens', None)}")
+                print(f"   - Output tokens: {getattr(u, 'output_tokens', None)}")
+                print(f"   - Total tokens: {getattr(u, 'total_tokens', None)}")
+            except Exception:
+                pass
             
             # Parse the JSON response
-            raw_content = response.choices[0].message.content.strip()
+            # Extract the text output from Responses API
+            raw_content = None
+            try:
+                # SDK v1.46+: output_text convenience
+                raw_content = response.output_text
+            except Exception:
+                pass
+            if not raw_content:
+                try:
+                    parts = response.output[0].content
+                    texts = [p.text for p in parts if getattr(p, 'type', '') == 'output_text' or hasattr(p, 'text')]
+                    raw_content = ''.join(texts).strip() if texts else None
+                except Exception:
+                    raw_content = None
+            if not raw_content:
+                raise ValueError("No output text from Responses API")
             
             # Remove markdown code blocks if present
             if raw_content.startswith("```"):

@@ -5,13 +5,14 @@ Demonstrates the GPT-4/5 prediction system with real data integration.
 
 from datetime import date, datetime
 from typing import List, Dict, Any, Optional
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from .database import get_db
 from .models import AIPrediction, DailyPrediction
 from .ai_predictor import ai_predictor
+from .config import settings
 
 
 class AIPredictionResponse(BaseModel):
@@ -134,6 +135,77 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
         pre_market_price=actual_data.preMarket if actual_data else None,
         predictions=predictions,
         accuracy_summary=accuracy_summary
+    )
+
+
+class AIPredictCreateResponse(BaseModel):
+    date: str
+    predLow: float
+    predHigh: float
+    source: str
+    locked: bool
+    analysis: str
+    lookbackDays: int
+
+
+def _compute_band_from_ai(preds: List[AIPrediction]) -> Optional[Dict[str, float]]:
+    if not preds:
+        return None
+    prices = [p.predicted_price for p in preds]
+    return {"low": float(min(prices)), "high": float(max(prices))}
+
+
+def create_ai_prediction_for_date(
+    target_date: date,
+    lookback_days: int,
+    db: Session,
+) -> AIPredictCreateResponse:
+    # Do not overwrite existing locked day
+    existing_day = db.query(DailyPrediction).filter(DailyPrediction.date == target_date).first()
+    if existing_day and existing_day.locked:
+        raise HTTPException(status_code=409, detail="Prediction already locked for this date")
+
+    # Generate new AI predictions and store
+    day_predictions = ai_predictor.generate_predictions(target_date, lookback_days=lookback_days)
+
+    # persist per-checkpoint predictions
+    for pred in day_predictions.predictions:
+        db.add(
+            AIPrediction(
+                date=target_date,
+                checkpoint=pred.checkpoint,
+                predicted_price=pred.predicted_price,
+                confidence=pred.confidence,
+                reasoning=pred.reasoning,
+                market_context=day_predictions.market_context,
+            )
+        )
+
+    # derive band
+    stored_preds = db.query(AIPrediction).filter(AIPrediction.date == target_date).all()
+    band = _compute_band_from_ai(stored_preds)
+    if not band:
+        raise HTTPException(status_code=500, detail="AI did not produce predictions")
+
+    if existing_day is None:
+        existing_day = DailyPrediction(date=target_date)
+        db.add(existing_day)
+
+    existing_day.predLow = band["low"]
+    existing_day.predHigh = band["high"]
+    existing_day.source = "ai"
+    existing_day.locked = True
+    db.commit()
+    db.refresh(existing_day)
+
+    return AIPredictCreateResponse(
+        date=target_date.isoformat(),
+        predLow=existing_day.predLow,
+        predHigh=existing_day.predHigh,
+        source=existing_day.source or "ai",
+        locked=bool(existing_day.locked),
+        analysis=day_predictions.market_context,
+        lookbackDays=lookback_days,
     )
 
 

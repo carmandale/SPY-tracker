@@ -269,7 +269,13 @@ def healthz():
 
 
 # AI Prediction Endpoints
-from .ai_endpoints import get_ai_predictions_for_date, get_ai_accuracy_metrics, demo_ai_prediction_system
+from .ai_endpoints import (
+    get_ai_predictions_for_date,
+    get_ai_accuracy_metrics,
+    demo_ai_prediction_system,
+    create_ai_prediction_for_date,
+)
+from .config import settings
 
 @app.get("/ai/predictions/{target_date}")
 def get_ai_predictions_endpoint(target_date: date, db: Session = Depends(get_db)):
@@ -290,3 +296,15 @@ def ai_demo_date(target_date: date, db: Session = Depends(get_db)):
 def ai_demo_today(db: Session = Depends(get_db)):
     """Demonstration of AI prediction system for today."""
     return demo_ai_prediction_system(None, db)
+
+
+@app.post("/ai/predict/{target_date}")
+def ai_predict_create(
+    target_date: date,
+    lookbackDays: int = None,
+    db: Session = Depends(get_db),
+):
+    """Create AI prediction for a date and lock the day (create-only)."""
+    if lookbackDays is None:
+        lookbackDays = settings.ai_lookback_days
+    return create_ai_prediction_for_date(target_date, lookbackDays, db)

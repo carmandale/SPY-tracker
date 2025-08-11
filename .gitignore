@@ -1,3 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+backend/.venv/
+
+# Databases / logs
+*.sqlite3
+backend/spy_tracker.db
+backend/uvicorn.log
+
+# Node
+node_modules/
+dist/
+build/
+
+# OS
+.DS_Store
+
 # Logs
 logs
 *.log
