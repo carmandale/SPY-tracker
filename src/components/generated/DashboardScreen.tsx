@@ -29,6 +29,7 @@ export function DashboardScreen() {
     notes: 'Loading data...'
   });
   const [dataSource, setDataSource] = useState<string>('Loading...');
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
     price: null,
@@ -68,6 +69,39 @@ export function DashboardScreen() {
               notes: data.notes || 'No notes available'
             });
             setDataSource('📝 Manual Prediction');
+          } else {
+            // No manual predictions, try AI predictions
+            console.log('No manual predictions, trying AI predictions...');
+            const aiResponse = await fetch(`http://localhost:8000/ai/predictions/${today}`);
+            if (aiResponse.ok) {
+              const aiData = await aiResponse.json();
+              console.log('AI predictions received:', aiData);
+              
+              // Extract predicted prices for low/high
+              const prices = aiData.predictions.map((p: any) => p.predicted_price);
+              const low = Math.min(...prices);
+              const high = Math.max(...prices);
+              
+              setPrediction({
+                low: low,
+                high: high,
+                bias: 'neutral',
+                notes: aiData.market_context || 'AI Prediction'
+              });
+              setDataSource('🤖 AI Prediction (GPT-5)');
+              setAiAnalysis(aiData.analysis || null);
+              
+              // Update price predictions
+              setKeyTimes(prev => prev.map(item => {
+                const pred = aiData.predictions.find((p: any) => 
+                  p.checkpoint.toLowerCase() === item.label.toLowerCase() ||
+                  (p.checkpoint === 'twoPM' && item.label === '2:00')
+                );
+                return { ...item, price: pred?.predicted_price || null };
+              }));
+            } else {
+              setDataSource('❌ No Data Available');
+            }
           }
 
           // Update price data
@@ -256,7 +290,12 @@ export function DashboardScreen() {
       y: 0
     }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Today's Prediction</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold">Today's Prediction</h2>
+            <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full font-medium">
+              {dataSource}
+            </span>
+          </div>
           {getBiasIcon(prediction.bias)}
         </div>
         
@@ -276,6 +315,27 @@ export function DashboardScreen() {
           {prediction.notes}
         </p>
       </motion.div>
+
+      {/* AI Analysis Card - only show if we have AI analysis */}
+      {aiAnalysis && (
+        <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-sm font-medium text-[#A7B3C5]">AI Market Analysis</h3>
+            <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full">
+              GPT-5 High Reasoning
+            </span>
+          </div>
+          <p className="text-sm text-[#A7B3C5] bg-[#0B0D12] rounded-lg p-3 leading-relaxed">
+            {aiAnalysis}
+          </p>
+        </motion.div>
+      )}
 
       {/* Key Times Grid */}
       <div>
