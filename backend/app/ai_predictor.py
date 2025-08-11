@@ -153,14 +153,15 @@ Provide predictions in this exact JSON format:
         try:
             # Try GPT-5 with high reasoning and more tokens
             try:
-                print("🤖 Attempting GPT-5 with high reasoning...")
+                print("🤖 Attempting GPT-5...")
+                # First try without reasoning_effort to see if it outputs
                 response = self.client.chat.completions.create(
                     model="gpt-5",  # Use GPT-5 as requested
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    reasoning_effort="high",  # High reasoning for deep analysis
+                    # Test without reasoning_effort to see if we get output
                     max_completion_tokens=2000  # Increased tokens as requested
                 )
                 
