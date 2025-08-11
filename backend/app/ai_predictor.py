@@ -152,26 +152,54 @@ Provide predictions in this exact JSON format:
 }}"""
 
         try:
-            # EXACTLY copy the working implementation
+            # Use exact pattern from working AI assessment service
             model = "gpt-5"
+            temperature = 0.3
+            max_tokens = 2000
+            reasoning_effort = "high"
+            
             print(f"🤖 Using {model} for SPY predictions...")
             
-            # Prepare API parameters for GPT-5 (which requires max_completion_tokens)
-            api_params = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "max_completion_tokens": 2000,  # GPT-5 requires this, not max_tokens
-                "response_format": {"type": "json_object"}
-            }
-            
-            # Add reasoning effort for GPT-5 models  
-            if model.startswith('gpt-5'):
-                api_params["reasoning_effort"] = "high"
-            
-            response = self.client.chat.completions.create(**api_params)
+            # Note: response_format might not be supported on all models
+            # Try with response_format first, fall back if not supported
+            try:
+                # Prepare API parameters - EXACTLY like working file
+                api_params = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "response_format": {"type": "json_object"}
+                }
+                
+                # Add reasoning effort for GPT-5 models
+                if model.startswith('gpt-5'):
+                    api_params["reasoning_effort"] = reasoning_effort
+                
+                response = self.client.chat.completions.create(**api_params)
+            except Exception as format_error:
+                if "response_format" in str(format_error):
+                    # Retry without response_format parameter but keep reasoning
+                    fallback_params = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    }
+                    
+                    # Add reasoning effort for GPT-5 models
+                    if model.startswith('gpt-5'):
+                        fallback_params["reasoning_effort"] = reasoning_effort
+                    
+                    response = self.client.chat.completions.create(**fallback_params)
+                else:
+                    raise format_error
             
             # Report token usage
             if hasattr(response, 'usage'):
