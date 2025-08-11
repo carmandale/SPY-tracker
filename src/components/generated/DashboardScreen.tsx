@@ -22,11 +22,11 @@ interface OptionsSetup {
   targetCredit: string;
 }
 export function DashboardScreen() {
-  const [prediction] = useState<PredictionData>({
+  const [prediction, setPrediction] = useState<PredictionData>({
     low: 582.50,
     high: 587.25,
-    bias: 'bullish',
-    notes: 'Strong support at 582, expecting bounce on Fed news'
+    bias: 'neutral',
+    notes: 'Loading...'
   });
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
@@ -34,7 +34,7 @@ export function DashboardScreen() {
     label: 'Open'
   }, {
     time: '12:00',
-    price: 584.75,
+    price: null,
     label: 'Noon'
   }, {
     time: '14:00',
@@ -45,6 +45,56 @@ export function DashboardScreen() {
     price: null,
     label: 'Close'
   }]);
+
+  // Load today's data on component mount
+  useEffect(() => {
+    const loadTodayData = async () => {
+      try {
+        const today = new Date().toLocaleDateString('en-CA', {
+          timeZone: 'America/Chicago'
+        });
+
+        const response = await fetch(`http://localhost:8000/day/${today}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Update prediction data
+          if (data.predLow && data.predHigh) {
+            setPrediction({
+              low: data.predLow,
+              high: data.predHigh,
+              bias: data.bias || 'neutral',
+              notes: data.notes || 'No notes available'
+            });
+          }
+
+          // Update price data
+          setKeyTimes(prev => prev.map(item => {
+            let price = null;
+            switch (item.label.toLowerCase()) {
+              case 'open':
+                price = data.open;
+                break;
+              case 'noon':
+                price = data.noon;
+                break;
+              case '2:00':
+                price = data.twoPM;
+                break;
+              case 'close':
+                price = data.close;
+                break;
+            }
+            return { ...item, price };
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading today\'s data:', error);
+      }
+    };
+
+    loadTodayData();
+  }, []);
   const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
   const chartData = [{
     time: '8:30',
