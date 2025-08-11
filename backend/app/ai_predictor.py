@@ -39,7 +39,12 @@ class AIPredictor:
     """GPT-4/5 powered SPY price predictor."""
     
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        if self.api_key and self.api_key != 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx':
+            self.client = OpenAI(api_key=self.api_key)
+        else:
+            self.client = None
+            print("⚠️  OpenAI API key not configured - AI predictions unavailable")
         self.symbol = settings.symbol
     
     def generate_predictions(self, target_date: date) -> DayPredictions:
