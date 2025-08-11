@@ -24,7 +24,7 @@ The following features have been implemented:
 
 ### Must-Have Features
 
-- [ ] Morning prediction form UI - Input fields for low/high/bias/context `M`
+- [x] Morning prediction form UI - Input fields for low/high/bias/context `M`
 - [ ] Manual price capture endpoints - Record open/noon/2PM/close `S`
 - [ ] Prediction persistence - Save and retrieve daily predictions `S`
 - [ ] Basic chart visualization - Show predicted band vs actual prices `M`
