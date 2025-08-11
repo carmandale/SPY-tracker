@@ -136,11 +136,11 @@ export function DashboardScreen() {
   }, []);
   const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
   
-  // Generate chart data from captured prices and interpolated points
+  // Generate chart data from actual prediction/price points only
   const chartData = React.useMemo(() => {
     const data = [];
     
-    // Add captured price points
+    // Add only the actual price points (no interpolation)
     keyTimes.forEach(item => {
       if (item.price !== null) {
         data.push({
@@ -150,51 +150,12 @@ export function DashboardScreen() {
       }
     });
     
-    // Add interpolated points between captured prices for smoother line
-    const sortedData = data.sort((a, b) => {
+    // Sort by time but don't add artificial interpolated points
+    return data.sort((a, b) => {
       const timeA = parseFloat(a.time.replace(':', '.'));
       const timeB = parseFloat(b.time.replace(':', '.'));
       return timeA - timeB;
     });
-    
-    // Generate interpolated points if we have at least 2 price points
-    if (sortedData.length >= 2) {
-      const interpolatedData = [];
-      
-      for (let i = 0; i < sortedData.length - 1; i++) {
-        const current = sortedData[i];
-        const next = sortedData[i + 1];
-        
-        interpolatedData.push(current);
-        
-        // Add interpolated points between major time intervals
-        const currentTime = parseFloat(current.time.replace(':', '.'));
-        const nextTime = parseFloat(next.time.replace(':', '.'));
-        const timeDiff = nextTime - currentTime;
-        const priceDiff = next.actual - current.actual;
-        
-        // Add 2-3 interpolated points if the time gap is significant
-        if (timeDiff > 1) {
-          const steps = Math.min(3, Math.floor(timeDiff));
-          for (let j = 1; j < steps; j++) {
-            const interpTime = currentTime + (timeDiff * j / steps);
-            const interpPrice = current.actual + (priceDiff * j / steps);
-            // Add small random variation for realistic price movement
-            const variation = (Math.random() - 0.5) * 0.5;
-            
-            interpolatedData.push({
-              time: interpTime.toFixed(2).replace('.', ':'),
-              actual: Math.round((interpPrice + variation) * 100) / 100
-            });
-          }
-        }
-      }
-      
-      interpolatedData.push(sortedData[sortedData.length - 1]);
-      return interpolatedData;
-    }
-    
-    return sortedData;
   }, [keyTimes]);
   const optionsSetups: OptionsSetup[] = [{
     type: 'Iron Condor',
