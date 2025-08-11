@@ -1,233 +1,301 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, RotateCcw, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, RotateCcw, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
-interface SPYData {
-  currentPrice: number;
-  openPrice: number;
-  noonPrice?: number;
-  twoPMPrice?: number;
-  closePrice?: number;
-  lastUpdated: Date;
-}
 interface PredictionData {
-  predictedLow: number;
-  predictedHigh: number;
-  bias: 'up' | 'neutral' | 'down';
-  volatilityContext: string;
-  dayType: string;
+  low: number;
+  high: number;
+  bias: 'bullish' | 'bearish' | 'neutral';
   notes: string;
-  date: Date;
 }
-interface TradeData {
-  dte0: {
-    strikes: {
-      put: number;
-      call: number;
-    };
-    delta: number;
-    wingWidth: number;
-    targetCredit: number;
-  };
-  week1: {
-    strikes: {
-      put: number;
-      call: number;
-    };
-    delta: number;
-    wingWidth: number;
-    targetCredit: number;
-  };
-  month1: {
-    strikes: {
-      put: number;
-      call: number;
-    };
-    delta: number;
-    wingWidth: number;
-    targetCredit: number;
-  };
+interface PriceData {
+  time: string;
+  price: number | null;
+  label: string;
 }
-interface DashboardScreenProps {
-  spyData: SPYData;
-  prediction: PredictionData | null;
-  tradeData: TradeData;
-  onLogPrice: (timeSlot: 'open' | 'noon' | 'twoPM' | 'close') => void;
-  onResetDay: () => void;
+interface OptionsSetup {
+  type: 'Iron Condor' | 'Iron Butterfly';
+  expiration: '0DTE' | '1W' | '1M';
+  strikes: string;
+  delta: string;
+  wings: string;
+  targetCredit: string;
 }
-export function DashboardScreen({
-  spyData,
-  prediction,
-  tradeData,
-  onLogPrice,
-  onResetDay
-}: DashboardScreenProps) {
-  const priceSlots = [{
-    id: 'open',
-    label: 'Open',
-    time: '9:30 AM',
-    price: spyData.openPrice,
-    color: 'bg-blue-600'
+export function DashboardScreen() {
+  const [prediction] = useState<PredictionData>({
+    low: 582.50,
+    high: 587.25,
+    bias: 'bullish',
+    notes: 'Strong support at 582, expecting bounce on Fed news'
+  });
+  const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
+    time: '8:30',
+    price: null,
+    label: 'Open'
   }, {
-    id: 'noon',
-    label: 'Noon',
-    time: '12:00 PM',
-    price: spyData.noonPrice,
-    color: 'bg-yellow-600'
-  }, {
-    id: 'twoPM',
-    label: '2:00 PM',
-    time: '2:00 PM',
-    price: spyData.twoPMPrice,
-    color: 'bg-orange-600'
-  }, {
-    id: 'close',
-    label: 'Close',
-    time: '4:00 PM',
-    price: spyData.closePrice,
-    color: 'bg-red-600'
-  }] as any[];
-  const chartData = [{
-    time: '9:30',
-    price: spyData.openPrice
-  }, ...(spyData.noonPrice ? [{
     time: '12:00',
-    price: spyData.noonPrice
-  }] : []), ...(spyData.twoPMPrice ? [{
+    price: 584.75,
+    label: 'Noon'
+  }, {
     time: '14:00',
-    price: spyData.twoPMPrice
-  }] : []), ...(spyData.closePrice ? [{
-    time: '16:00',
-    price: spyData.closePrice
-  }] : [])];
-  const getBiasColor = (bias: string) => {
+    price: null,
+    label: '2:00'
+  }, {
+    time: '15:00',
+    price: null,
+    label: 'Close'
+  }]);
+  const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
+  const chartData = [{
+    time: '8:30',
+    actual: null
+  }, {
+    time: '9:00',
+    actual: 583.25
+  }, {
+    time: '10:00',
+    actual: 584.10
+  }, {
+    time: '11:00',
+    actual: 584.50
+  }, {
+    time: '12:00',
+    actual: 584.75
+  }, {
+    time: '13:00',
+    actual: 585.20
+  }, {
+    time: '14:00',
+    actual: null
+  }, {
+    time: '15:00',
+    actual: null
+  }] as any[];
+  const optionsSetups: OptionsSetup[] = [{
+    type: 'Iron Condor',
+    expiration: '0DTE',
+    strikes: '580/582.5/587/589.5',
+    delta: '±15Δ',
+    wings: '$2.50',
+    targetCredit: '$0.85'
+  }, {
+    type: 'Iron Butterfly',
+    expiration: '1W',
+    strikes: '584.5/584.5/584.5',
+    delta: '±20Δ',
+    wings: '$3.00',
+    targetCredit: '$1.25'
+  }, {
+    type: 'Iron Condor',
+    expiration: '1M',
+    strikes: '575/580/590/595',
+    delta: '±25Δ',
+    wings: '$5.00',
+    targetCredit: '$2.10'
+  }];
+  const handlePriceUpdate = (index: number) => {
+    // Simulate price update with haptic feedback
+    const newPrice = 583.50 + Math.random() * 3;
+    setKeyTimes(prev => prev.map((item, i) => i === index ? {
+      ...item,
+      price: Number(newPrice.toFixed(2))
+    } : item));
+  };
+  const handleUpdateOptions = async () => {
+    setIsUpdatingOptions(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsUpdatingOptions(false);
+  };
+  const getBiasIcon = (bias: string) => {
     switch (bias) {
-      case 'up':
-        return 'text-green-400';
-      case 'down':
-        return 'text-red-400';
+      case 'bullish':
+        return <TrendingUp className="w-4 h-4 text-[#16A34A]" />;
+      case 'bearish':
+        return <TrendingDown className="w-4 h-4 text-[#DC2626]" />;
       default:
-        return 'text-blue-400';
+        return <Minus className="w-4 h-4 text-[#A7B3C5]" />;
     }
   };
+  const rangeHitPercentage = 73;
+  const medianAbsError = 1.25;
   return <div className="p-4 space-y-6">
-      {/* Live Price Cards */}
-      <section>
-        <h2 className="text-lg font-semibold text-gray-200 mb-3">Price Logging</h2>
+      {/* Prediction Card */}
+      <motion.div initial={{
+      opacity: 0,
+      y: 20
+    }} animate={{
+      opacity: 1,
+      y: 0
+    }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Today's Prediction</h2>
+          {getBiasIcon(prediction.bias)}
+        </div>
+        
+        <div className="flex items-center gap-4 mb-3">
+          <div className="text-center">
+            <p className="text-xs text-[#A7B3C5] mb-1">Low</p>
+            <p className="text-xl font-mono font-bold text-[#DC2626]">${prediction.low}</p>
+          </div>
+          <div className="flex-1 h-px bg-gradient-to-r from-[#DC2626] via-[#A7B3C5] to-[#16A34A]"></div>
+          <div className="text-center">
+            <p className="text-xs text-[#A7B3C5] mb-1">High</p>
+            <p className="text-xl font-mono font-bold text-[#16A34A]">${prediction.high}</p>
+          </div>
+        </div>
+        
+        <p className="text-sm text-[#A7B3C5] bg-[#0B0D12] rounded-lg p-3">
+          {prediction.notes}
+        </p>
+      </motion.div>
+
+      {/* Key Times Grid */}
+      <div>
+        <h3 className="text-sm font-medium text-[#A7B3C5] mb-3">Key Times (CST)</h3>
         <div className="grid grid-cols-2 gap-3">
-          {priceSlots.map(slot => <motion.button key={slot.id} whileTap={{
+          {keyTimes.map((item, index) => <motion.button key={item.time} onClick={() => handlePriceUpdate(index)} whileTap={{
           scale: 0.98
-        }} onClick={() => onLogPrice(slot.id as any)} className={`p-4 rounded-xl border border-gray-700 bg-gray-800 hover:bg-gray-750 transition-colors touch-manipulation ${slot.price ? 'ring-2 ring-blue-500' : ''}`}>
+        }} className="bg-[#12161D] rounded-xl p-4 border border-white/8 text-left hover:border-[#006072]/50 transition-colors">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-300">{slot.label}</span>
-                <Clock className="w-4 h-4 text-gray-400" />
+                <span className="text-xs text-[#A7B3C5]">{item.label}</span>
+                <span className="text-xs font-mono text-[#A7B3C5]">{item.time}</span>
               </div>
-              <div className="text-xs text-gray-500 mb-1">{slot.time}</div>
-              <div className="text-lg font-mono font-bold text-white">
-                {slot.price ? `$${slot.price.toFixed(2)}` : 'Tap to log'}
-              </div>
+              <p className="text-lg font-mono font-bold">
+                {item.price ? `$${item.price}` : '---'}
+              </p>
             </motion.button>)}
         </div>
-      </section>
+      </div>
 
-      {/* Chart Section */}
-      <section>
+      {/* Chart Card */}
+      <motion.div initial={{
+      opacity: 0,
+      y: 20
+    }} animate={{
+      opacity: 1,
+      y: 0
+    }} transition={{
+      delay: 0.1
+    }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-medium">Price Movement</h3>
+          <button className="p-1 rounded-lg hover:bg-white/5 transition-colors">
+            <RotateCcw className="w-4 h-4 text-[#A7B3C5]" />
+          </button>
+        </div>
+        
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{
+              fontSize: 12,
+              fill: '#A7B3C5'
+            }} />
+              <YAxis domain={[580, 590]} axisLine={false} tickLine={false} tick={{
+              fontSize: 12,
+              fill: '#A7B3C5'
+            }} />
+              <ReferenceArea y1={prediction.low} y2={prediction.high} fill="#006072" fillOpacity={0.1} stroke="#006072" strokeOpacity={0.3} />
+              <ReferenceLine y={prediction.low} stroke="#DC2626" strokeDasharray="2 2" />
+              <ReferenceLine y={prediction.high} stroke="#16A34A" strokeDasharray="2 2" />
+              <Line type="monotone" dataKey="actual" stroke="#E8ECF2" strokeWidth={2} dot={{
+              fill: '#E8ECF2',
+              strokeWidth: 0,
+              r: 3
+            }} connectNulls={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+
+      {/* Options Suggestions */}
+      <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-200">Intraday Chart</h2>
-          <motion.button whileTap={{
+          <h3 className="text-sm font-medium text-[#A7B3C5]">Options Setups</h3>
+          <motion.button onClick={handleUpdateOptions} disabled={isUpdatingOptions} whileTap={{
           scale: 0.95
-        }} onClick={onResetDay} className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm touch-manipulation">
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset Day</span>
+        }} className="flex items-center gap-2 px-3 py-1 bg-[#006072] text-white text-xs rounded-lg disabled:opacity-50">
+            <motion.div animate={isUpdatingOptions ? {
+            rotate: 360
+          } : {
+            rotate: 0
+          }} transition={{
+            duration: 1,
+            repeat: isUpdatingOptions ? Infinity : 0,
+            ease: "linear"
+          }}>
+              <RefreshCw className="w-3 h-3" />
+            </motion.div>
+            Update
           </motion.button>
         </div>
         
-        <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                {prediction && <ReferenceArea y1={prediction.predictedLow} y2={prediction.predictedHigh} fill="rgba(59, 130, 246, 0.1)" stroke="none" />}
-                {prediction && <>
-                    <ReferenceLine y={prediction.predictedLow} stroke="#ef4444" strokeDasharray="3 3" />
-                    <ReferenceLine y={prediction.predictedHigh} stroke="#22c55e" strokeDasharray="3 3" />
-                  </>}
-                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{
-                fill: '#9ca3af',
-                fontSize: 12
-              }} />
-                <YAxis domain={['dataMin - 2', 'dataMax + 2']} axisLine={false} tickLine={false} tick={{
-                fill: '#9ca3af',
-                fontSize: 12
-              }} />
-                <Line type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={2} dot={{
-                fill: '#3b82f6',
-                strokeWidth: 2,
-                r: 4
-              }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {prediction && <div className="mt-3 text-xs text-gray-400 text-center">
-              Predicted Range: ${prediction.predictedLow.toFixed(2)} - ${prediction.predictedHigh.toFixed(2)} 
-              <span className={`ml-2 font-medium ${getBiasColor(prediction.bias)}`}>
-                ({prediction.bias.toUpperCase()})
-              </span>
-            </div>}
-        </div>
-      </section>
-
-      {/* Trade Suggestions */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-200">Trade Suggestions</h2>
-          <motion.button whileTap={{
-          scale: 0.95
-        }} className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors text-sm touch-manipulation">
-            <RefreshCw className="w-4 h-4" />
-            <span>Update</span>
-          </motion.button>
-        </div>
-
         <div className="space-y-3">
-          {[{
-          key: 'dte0',
-          label: '0DTE',
-          data: tradeData.dte0
-        }, {
-          key: 'week1',
-          label: '1W',
-          data: tradeData.week1
-        }, {
-          key: 'month1',
-          label: '1M',
-          data: tradeData.month1
-        }].map(trade => <div key={trade.key} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          {optionsSetups.map((setup, index) => <motion.div key={index} initial={{
+          opacity: 0,
+          x: -20
+        }} animate={{
+          opacity: 1,
+          x: 0
+        }} transition={{
+          delay: index * 0.1
+        }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-white">{trade.label} Iron Condor</h3>
-                <span className="text-sm text-green-400 font-mono">${trade.data.targetCredit.toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{setup.type}</span>
+                  <span className="px-2 py-1 bg-[#006072] text-white text-xs rounded-full">
+                    {setup.expiration}
+                  </span>
+                </div>
+                <span className="text-sm font-mono font-bold text-[#16A34A]">
+                  {setup.targetCredit}
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              
+              <div className="grid grid-cols-3 gap-4 text-xs">
                 <div>
-                  <div className="text-gray-400 mb-1">Strikes</div>
-                  <div className="font-mono text-white">
-                    {trade.data.strikes.put}/{trade.data.strikes.call}
-                  </div>
+                  <p className="text-[#A7B3C5] mb-1">Strikes</p>
+                  <p className="font-mono">{setup.strikes}</p>
                 </div>
                 <div>
-                  <div className="text-gray-400 mb-1">Delta</div>
-                  <div className="font-mono text-white">{trade.data.delta.toFixed(2)}</div>
+                  <p className="text-[#A7B3C5] mb-1">Delta</p>
+                  <p className="font-mono">{setup.delta}</p>
                 </div>
                 <div>
-                  <div className="text-gray-400 mb-1">Wing Width</div>
-                  <div className="font-mono text-white">${trade.data.wingWidth}</div>
-                </div>
-                <div>
-                  <div className="text-gray-400 mb-1">Target Credit</div>
-                  <div className="font-mono text-green-400">${trade.data.targetCredit.toFixed(2)}</div>
+                  <p className="text-[#A7B3C5] mb-1">Wings</p>
+                  <p className="font-mono">{setup.wings}</p>
                 </div>
               </div>
-            </div>)}
+            </motion.div>)}
         </div>
-      </section>
+      </div>
+
+      {/* Performance Strip */}
+      <motion.div initial={{
+      opacity: 0,
+      y: 20
+    }} animate={{
+      opacity: 1,
+      y: 0
+    }} transition={{
+      delay: 0.2
+    }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-center">
+            <p className="text-xs text-[#A7B3C5] mb-1">Range Hit %</p>
+            <p className="text-lg font-mono font-bold text-[#16A34A]">{rangeHitPercentage}%</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-[#A7B3C5] mb-1">Median Abs Error</p>
+            <p className="text-lg font-mono font-bold text-[#E8ECF2]">${medianAbsError}</p>
+          </div>
+        </div>
+        
+        <div className="bg-[#0B0D12] rounded-lg p-3">
+          <p className="text-xs text-[#A7B3C5]">
+            💡 <strong>Calibration Tip:</strong> Your ranges are slightly narrow. Consider widening by 10-15% for better hit rate.
+          </p>
+        </div>
+      </motion.div>
     </div>;
 }

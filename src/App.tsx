@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Container, Theme } from './settings/types';
-import { SPYTradingAssistantApp } from './components/generated/SPYTradingAssistantApp';
+import { SPYTaTrackerApp } from './components/generated/SPYTaTrackerApp';
 
 let theme: Theme = 'dark';
 // only use 'centered' container for standalone components, never for full page apps or websites.
@@ -19,7 +19,7 @@ function App() {
 
   const generatedComponent = useMemo(() => {
     // THIS IS WHERE THE TOP LEVEL GENRATED COMPONENT WILL BE RETURNED!
-    return <SPYTradingAssistantApp />; // %EXPORT_STATEMENT%
+    return <SPYTaTrackerApp />; // %EXPORT_STATEMENT%
   }, []);
 
   if (container === 'centered') {
