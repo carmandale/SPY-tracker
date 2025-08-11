@@ -88,7 +88,7 @@ export function DashboardScreen() {
                 bias: 'neutral',
                 notes: aiData.market_context || 'AI Prediction'
               });
-              setDataSource('🤖 AI Prediction (GPT-5)');
+              setDataSource('🤖 AI Prediction (o1-mini)');
               setAiAnalysis(aiData.analysis || null);
               
               // Update price predictions
