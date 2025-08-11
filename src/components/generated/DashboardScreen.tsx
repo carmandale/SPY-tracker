@@ -98,8 +98,8 @@ export function DashboardScreen() {
             const aiData = await aiResponse.json();
             console.log('AI predictions received:', aiData);
             
-            // Extract predicted prices for low/high
-            const prices = aiData.predictions.map((p: any) => p.predicted_price);
+            // Extract predicted prices for low/high and round to 2 decimal places
+            const prices = aiData.predictions.map((p: any) => Math.round(p.predicted_price * 100) / 100);
             const low = Math.min(...prices);
             const high = Math.max(...prices);
             
