@@ -22,7 +22,7 @@ fi
 
 # Get ports from environment or use defaults
 BACKEND_PORT=${API_PORT:-8000}
-FRONTEND_PORT=${PORT:-5173}
+FRONTEND_PORT=${PORT:-3000}
 
 echo ""
 echo "📡 Starting Backend Server on port $BACKEND_PORT..."
