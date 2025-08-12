@@ -579,24 +579,65 @@ export function HistoryScreen() {
                       <p className="text-sm font-semibold text-[#E8ECF2]">Range Performance</p>
                     </div>
                     
-                    <div className="relative h-12 bg-white/5 rounded-lg overflow-hidden mb-3">
-                      {/* Predicted Range */}
-                      <div className="absolute top-1 h-4 bg-[#006072]/40 border border-[#006072] flex items-center justify-center" style={{
-                        left: '10%',
-                        width: '60%'
-                      }}>
-                        <span className="text-xs text-white font-bold">PRED</span>
-                      </div>
-                      {/* Actual Range */}
-                      <div className={`absolute bottom-1 h-4 border flex items-center justify-center ${
-                        prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
-                      }`} style={{
-                        left: '15%',
-                        width: '55%'
-                      }}>
-                        <span className="text-xs text-white font-bold">ACT</span>
-                      </div>
-                    </div>
+{(() => {
+                      // Same scaling logic as compact view
+                      if (!prediction.actualLow || !prediction.actualHigh) {
+                        return (
+                          <div className="text-center py-3 text-[#A7B3C5] text-sm">
+                            Day incomplete - no range analysis available
+                          </div>
+                        );
+                      }
+
+                      const allPrices = [prediction.low, prediction.high, prediction.actualLow, prediction.actualHigh];
+                      const minPrice = Math.min(...allPrices);
+                      const maxPrice = Math.max(...allPrices);
+                      const totalRange = maxPrice - minPrice;
+                      const padding = totalRange * 0.05;
+                      const chartMin = minPrice - padding;
+                      const chartMax = maxPrice + padding;
+                      const chartRange = chartMax - chartMin;
+                      
+                      const predLeft = ((prediction.low - chartMin) / chartRange) * 100;
+                      const predWidth = ((prediction.high - prediction.low) / chartRange) * 100;
+                      const actualLeft = ((prediction.actualLow - chartMin) / chartRange) * 100;
+                      const actualWidth = ((prediction.actualHigh - prediction.actualLow) / chartRange) * 100;
+                      
+                      return (
+                        <div className="relative h-12 bg-white/5 rounded-lg overflow-hidden mb-3">
+                          {/* Price scale with more detail */}
+                          <div className="absolute inset-x-0 top-0 h-full flex items-center justify-between px-2 text-xs text-[#A7B3C5]/60">
+                            <span>${chartMin.toFixed(2)}</span>
+                            <span className="text-[10px]">{((chartMax + chartMin) / 2).toFixed(2)}</span>
+                            <span>${chartMax.toFixed(2)}</span>
+                          </div>
+                          
+                          {/* Predicted Range */}
+                          <div 
+                            className="absolute top-1 h-4 bg-[#006072]/40 border border-[#006072] flex items-center justify-center rounded-sm"
+                            style={{
+                              left: `${predLeft}%`,
+                              width: `${Math.max(predWidth, 2)}%`
+                            }}
+                          >
+                            <span className="text-xs text-white font-bold">PRED</span>
+                          </div>
+                          
+                          {/* Actual Range */}
+                          <div 
+                            className={`absolute bottom-1 h-4 border flex items-center justify-center rounded-sm ${
+                              prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
+                            }`}
+                            style={{
+                              left: `${actualLeft}%`,
+                              width: `${Math.max(actualWidth, 2)}%`
+                            }}
+                          >
+                            <span className="text-xs text-white font-bold">ACT</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Range metrics grid */}
                     <div className="grid grid-cols-2 gap-4">
