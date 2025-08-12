@@ -390,6 +390,48 @@ def get_accuracy_grade(range_hit_pct: Optional[float], median_error: Optional[fl
         return "F"
 
 
+@app.get("/market-data/{symbol}")
+def get_market_data(symbol: str = "SPY"):
+    """Get comprehensive market data including price, IV, volume, etc."""
+    try:
+        market_data = default_provider.get_market_data(symbol.upper())
+        
+        if not market_data:
+            raise HTTPException(status_code=404, detail="Market data not available")
+        
+        # Add market status
+        market_data["market_open"] = default_provider.is_market_open()
+        
+        return {
+            "symbol": symbol.upper(),
+            "data": market_data,
+            "provider": "yfinance",
+            "cached": False  # Could implement cache detection later
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch market data: {str(e)}")
+
+
+@app.get("/market-status")
+def get_market_status():
+    """Get current market status"""
+    try:
+        is_open = default_provider.is_market_open()
+        current_price = default_provider.get_price(settings.symbol)
+        
+        return {
+            "market_open": is_open,
+            "current_time_utc": datetime.now(timezone.utc).isoformat(),
+            "symbol": settings.symbol,
+            "current_price": current_price,
+            "status": "open" if is_open else "closed"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get market status: {str(e)}")
+
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
