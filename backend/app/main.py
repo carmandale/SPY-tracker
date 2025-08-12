@@ -671,6 +671,35 @@ def trigger_scheduler_job(job_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Job execution failed: {str(e)}")
 
 
+@app.post("/admin/cleanup-future-data")
+def cleanup_future_data(db: Session = Depends(get_db)):
+    """Remove any predictions or AI predictions for future dates."""
+    from datetime import datetime
+    
+    today = datetime.now().date()
+    
+    # Delete future DailyPredictions
+    future_preds = db.query(DailyPrediction).filter(DailyPrediction.date > today).all()
+    for pred in future_preds:
+        db.delete(pred)
+    
+    # Delete future AIPredictions
+    future_ai_preds = db.query(AIPrediction).filter(AIPrediction.date > today).all()
+    for pred in future_ai_preds:
+        db.delete(pred)
+    
+    db.commit()
+    
+    return {
+        "status": "success",
+        "cleaned_up": {
+            "daily_predictions": len(future_preds),
+            "ai_predictions": len(future_ai_preds)
+        },
+        "cutoff_date": today.isoformat()
+    }
+
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
