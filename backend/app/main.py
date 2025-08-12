@@ -280,7 +280,7 @@ def get_history(
 
 @app.get("/metrics")
 def get_metrics(db: Session = Depends(get_db)):
-    """Get 20-day rolling metrics"""
+    """Get comprehensive 20-day rolling metrics with calibration tips"""
     # Get last 20 days of data
     recent_preds = (
         db.query(DailyPrediction)
@@ -295,22 +295,98 @@ def get_metrics(db: Session = Depends(get_db)):
         return {
             "count_days": 0,
             "rangeHit20": None,
-            "medianAbsErr20": None
+            "medianAbsErr20": None,
+            "calibration_tip": "No data available yet. Make some predictions first!",
+            "trend": None,
+            "accuracy_grade": "N/A"
         }
     
     # Calculate rangeHit20
     range_hits = [p for p in recent_preds if p.rangeHit is True]
-    rangeHit20 = len(range_hits) / count_days if count_days > 0 else None
+    rangeHit20 = len(range_hits) / count_days if count_days > 0 else 0.0
     
     # Calculate medianAbsErr20
     abs_errors = [p.absErrorToClose for p in recent_preds if p.absErrorToClose is not None]
     medianAbsErr20 = median(abs_errors) if abs_errors else None
     
+    # Generate calibration tip based on performance
+    calibration_tip = generate_calibration_tip(rangeHit20, medianAbsErr20, count_days)
+    
+    # Calculate trend (last 5 vs previous 5)
+    trend = calculate_trend(recent_preds) if count_days >= 10 else None
+    
+    # Assign accuracy grade
+    accuracy_grade = get_accuracy_grade(rangeHit20, medianAbsErr20)
+    
     return {
         "count_days": count_days,
         "rangeHit20": rangeHit20,
-        "medianAbsErr20": medianAbsErr20
+        "medianAbsErr20": medianAbsErr20,
+        "calibration_tip": calibration_tip,
+        "trend": trend,
+        "accuracy_grade": accuracy_grade,
+        "sample_data": count_days < 10  # Flag for insufficient data
     }
+
+
+def generate_calibration_tip(range_hit_pct: float, median_error: Optional[float], count: int) -> str:
+    """Generate data-driven calibration tips"""
+    if count < 5:
+        return "🚀 Keep tracking! Need more predictions for meaningful calibration tips."
+    
+    if range_hit_pct is None:
+        return "📊 Complete some predictions with actual outcomes to see calibration tips."
+    
+    # Range hit calibration
+    if range_hit_pct < 0.45:
+        return "📏 Your ranges are too narrow. Try widening by 15-20% for better hit rate."
+    elif range_hit_pct < 0.55:
+        return "📏 Ranges slightly narrow. Consider widening by 10% to improve hit rate."
+    elif range_hit_pct > 0.75:
+        return "🎯 Great hit rate! You might tighten ranges by 5-10% for more precision."
+    elif range_hit_pct > 0.85:
+        return "🎯 Excellent accuracy! Try slightly tighter ranges to maximize edge."
+    else:
+        return "✅ Well-calibrated ranges! Current sizing looks optimal."
+
+
+def calculate_trend(recent_preds) -> Optional[str]:
+    """Calculate if accuracy is improving or declining"""
+    if len(recent_preds) < 10:
+        return None
+    
+    # Split into recent 5 and previous 5
+    recent_5 = recent_preds[:5]
+    previous_5 = recent_preds[5:10]
+    
+    recent_hits = sum(1 for p in recent_5 if p.rangeHit) / 5
+    previous_hits = sum(1 for p in previous_5 if p.rangeHit) / 5
+    
+    diff = recent_hits - previous_hits
+    
+    if diff > 0.2:
+        return "📈 Improving"
+    elif diff < -0.2:
+        return "📉 Declining"
+    else:
+        return "➡️ Stable"
+
+
+def get_accuracy_grade(range_hit_pct: Optional[float], median_error: Optional[float]) -> str:
+    """Assign letter grade based on performance"""
+    if range_hit_pct is None:
+        return "N/A"
+    
+    if range_hit_pct >= 0.8:
+        return "A"
+    elif range_hit_pct >= 0.7:
+        return "B"
+    elif range_hit_pct >= 0.6:
+        return "C"
+    elif range_hit_pct >= 0.5:
+        return "D"
+    else:
+        return "F"
 
 
 @app.get("/healthz")
