@@ -290,7 +290,7 @@ export function HistoryScreen() {
                 <div className="text-right">
                   <p className="text-xs text-[#A7B3C5] mb-1">Error</p>
                   <p className={`text-sm font-mono font-bold ${prediction.error < 1 ? 'text-[#16A34A]' : prediction.error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'}`}>
-                    ${prediction.error}
+                    ${prediction.error.toFixed(2)}
                   </p>
                 </div>
               </div>
