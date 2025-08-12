@@ -404,8 +404,31 @@ export function PLChartMini({ data }: PLChartMiniProps) {
   return (
     <PLChart 
       data={data} 
-      height={80} 
+      variant="mini"
       showBreakevens={false} 
+      showCurrentPrice={true}
+    />
+  );
+}
+
+// Enhanced chart variants for different use cases
+export function PLChartStandard({ data, showBreakevens = true }: { data: PLData, showBreakevens?: boolean }) {
+  return (
+    <PLChart 
+      data={data} 
+      variant="standard"
+      showBreakevens={showBreakevens} 
+      showCurrentPrice={true}
+    />
+  );
+}
+
+export function PLChartExpanded({ data }: { data: PLData }) {
+  return (
+    <PLChart 
+      data={data} 
+      variant="expanded"
+      showBreakevens={true} 
       showCurrentPrice={true}
     />
   );
