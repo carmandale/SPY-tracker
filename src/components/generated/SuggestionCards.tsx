@@ -125,9 +125,26 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
     );
   }
 
+  // Find P&L data for a specific suggestion
+  const findPLData = (suggestion: Suggestion) => {
+    return plData.find(pl => 
+      pl.tenor === suggestion.tenor && 
+      pl.strategy === suggestion.strategy
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-[#A7B3C5]">Option Structure Suggestions</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-[#A7B3C5]">Option Structure Suggestions</h3>
+        <button
+          onClick={() => setShowCharts(!showCharts)}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-[#A7B3C5] hover:text-[#E8ECF2] transition-colors"
+        >
+          {showCharts ? <EyeOff className="w-3 h-3" /> : <BarChart3 className="w-3 h-3" />}
+          {showCharts ? 'Hide P&L' : 'Show P&L'}
+        </button>
+      </div>
       
       {suggestions.map((suggestion, index) => (
         <motion.div
