@@ -276,14 +276,28 @@ def get_history(
             pred_mid = (pred.predHigh + pred.predLow) / 2.0
             error = abs(pred.close - pred_mid)
         
+        # Calculate actual low/high from available price points
+        prices = []
+        if pred.open is not None:
+            prices.append(pred.open)
+        if pred.noon is not None:
+            prices.append(pred.noon)
+        if pred.twoPM is not None:
+            prices.append(pred.twoPM)
+        if pred.close is not None:
+            prices.append(pred.close)
+        
+        actual_low = min(prices) if prices else None
+        actual_high = max(prices) if prices else None
+        
         history_items.append({
             "id": pred.id,
             "date": pred.date.isoformat(),
             "predLow": pred.predLow,
             "predHigh": pred.predHigh,
             "bias": pred.bias,
-            "actualLow": pred.realizedLow or pred.open,  # Use open as fallback
-            "actualHigh": pred.realizedHigh or pred.close,  # Use close as fallback
+            "actualLow": actual_low,  # Min of all captured prices
+            "actualHigh": actual_high,  # Max of all captured prices
             "rangeHit": pred.rangeHit,
             "notes": pred.notes,
             "dayType": pred.dayType,
