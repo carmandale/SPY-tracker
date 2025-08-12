@@ -23,6 +23,15 @@ interface PLData {
   current_pl?: number;
   time_to_expiry?: number; // hours remaining
   winning_probability?: number;
+  strikes?: {
+    // Iron Condor strikes
+    put_long_strike?: number;
+    put_short_strike?: number;
+    call_short_strike?: number;
+    call_long_strike?: number;
+    // Iron Butterfly strikes
+    center_strike?: number;
+  };
 }
 
 interface PLChartProps {
