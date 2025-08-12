@@ -361,15 +361,14 @@ export function PLChart({
                 strokeDasharray="none"
                 opacity={1}
                 label={{
-                  value: 'TODAY',
-                  position: 'topLeft',
+                  value: `TODAY $${data.current_price.toFixed(2)}`,
+                  position: 'bottom',
+                  offset: 10,
                   style: {
-                    fontSize: '10px',
+                    fontSize: '12px',
                     fill: '#FFD700',
                     fontWeight: 'bold',
-                    backgroundColor: '#0B0D12',
-                    padding: '2px 4px',
-                    borderRadius: '4px'
+                    textShadow: '0 1px 3px rgba(0,0,0,0.8)'
                   }
                 }}
               />
