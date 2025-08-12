@@ -63,6 +63,30 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
     fetchSuggestions();
   }, [date]);
 
+  // Fetch P&L data when charts are shown
+  useEffect(() => {
+    if (!showCharts || suggestions.length === 0) return;
+
+    const fetchPLData = async () => {
+      try {
+        const targetDate = date || new Date().toLocaleDateString('en-CA', {
+          timeZone: 'America/Chicago'
+        });
+        
+        const response = await fetch(`http://localhost:8000/suggestions/${targetDate}/pl-data`);
+        if (response.ok) {
+          const data = await response.json();
+          setPLData(data.pl_data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch P&L data:', error);
+        setPLData([]);
+      }
+    };
+
+    fetchPLData();
+  }, [showCharts, suggestions, date]);
+
   const getTenorBadgeColor = (tenor: string) => {
     switch (tenor) {
       case '0DTE': return 'bg-red-500/10 text-red-400';
