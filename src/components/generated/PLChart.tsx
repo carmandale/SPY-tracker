@@ -61,11 +61,11 @@ export function PLChart({
       const isProfit = pl >= 0;
       
       return (
-        <div className="bg-[#0B0D12] border border-white/8 rounded-lg p-2 shadow-lg">
-          <p className="text-xs text-[#A7B3C5] mb-1">
-            Price: ${label}
+        <div className="bg-[#0B0D12] border border-white/8 rounded-lg p-3 shadow-lg min-w-[120px]">
+          <p className="text-sm text-[#A7B3C5] mb-1 font-medium">
+            Price: ${parseFloat(label).toFixed(0)}
           </p>
-          <p className={`text-xs font-mono font-medium ${isProfit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+          <p className={`text-sm font-mono font-bold ${isProfit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
             P&L: {isProfit ? '+' : ''}${pl.toFixed(2)}
           </p>
         </div>
