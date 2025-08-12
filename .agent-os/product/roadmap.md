@@ -33,7 +33,7 @@ The following features have been implemented:
 ### Should-Have Features
 
 - [x] Pre-market price snapshot - Real SPY data via yfinance `S`
-- [ ] Automated scheduled price capture - Replace manual with scheduled jobs `M`
+- [x] Automated scheduled price capture - Replace manual with scheduled jobs `M`
 - [x] Range hit calculation - Score prediction accuracy `S`
 
 ### AI Enhancement (Added)
