@@ -510,3 +510,68 @@ def ai_predict_create(
     if lookbackDays is None:
         lookbackDays = settings.ai_lookback_days
     return create_ai_prediction_for_date(target_date, lookbackDays, db)
+
+
+@app.get("/scheduler/status")
+def get_scheduler_status():
+    """Get current scheduler status and job information"""
+    jobs = []
+    for job in _scheduler.get_jobs():
+        jobs.append({
+            "id": job.id,
+            "name": getattr(job, 'name', None),
+            "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
+            "trigger": str(job.trigger),
+            "max_instances": getattr(job, 'max_instances', None),
+        })
+    
+    return {
+        "scheduler_running": _scheduler.running,
+        "jobs": jobs,
+        "timezone": str(_scheduler.timezone),
+        "total_jobs": len(jobs)
+    }
+
+
+@app.post("/scheduler/trigger/{job_id}")
+def trigger_scheduler_job(job_id: str, db: Session = Depends(get_db)):
+    """Manually trigger a scheduled job for testing"""
+    job = _scheduler.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    try:
+        # Execute the job function manually
+        if job_id == "capture_open":
+            from .scheduler import capture_price
+            capture_price(db, "open")
+            return {"status": "success", "job": job_id, "action": "captured open price"}
+        elif job_id == "capture_noon":
+            from .scheduler import capture_price
+            capture_price(db, "noon")
+            return {"status": "success", "job": job_id, "action": "captured noon price"}
+        elif job_id == "capture_2pm":
+            from .scheduler import capture_price
+            capture_price(db, "twoPM")
+            return {"status": "success", "job": job_id, "action": "captured 2PM price"}
+        elif job_id == "capture_close":
+            from .scheduler import capture_price
+            capture_price(db, "close")
+            return {"status": "success", "job": job_id, "action": "captured close price"}
+        elif job_id == "capture_premarket":
+            from .scheduler import capture_price
+            capture_price(db, "preMarket")
+            return {"status": "success", "job": job_id, "action": "captured premarket price"}
+        elif job_id == "ai_predict_0830":
+            from .scheduler import _run_ai_prediction
+            _run_ai_prediction(get_db)
+            return {"status": "success", "job": job_id, "action": "generated AI predictions"}
+        else:
+            return {"status": "error", "message": f"Unknown job: {job_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Job execution failed: {str(e)}")
+
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
