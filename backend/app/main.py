@@ -562,10 +562,14 @@ def trigger_scheduler_job(job_id: str, db: Session = Depends(get_db)):
             from .scheduler import capture_price
             capture_price(db, "preMarket")
             return {"status": "success", "job": job_id, "action": "captured premarket price"}
-        elif job_id == "ai_predict_0830":
+        elif job_id == "ai_predict_0800":
             from .scheduler import _run_ai_prediction
             _run_ai_prediction(get_db)
             return {"status": "success", "job": job_id, "action": "generated AI predictions"}
+        elif job_id == "ai_predict_0830":  # Legacy support
+            from .scheduler import _run_ai_prediction
+            _run_ai_prediction(get_db)
+            return {"status": "success", "job": "ai_predict_0800", "action": "generated AI predictions (legacy trigger)"}
         else:
             return {"status": "error", "message": f"Unknown job: {job_id}"}
     except Exception as e:
