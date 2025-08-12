@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip, defs, linearGradient, stop } from 'recharts';
+import { TrendingUp, TrendingDown, Clock, AlertTriangle, Target } from 'lucide-react';
 
 interface PLPoint {
   underlying_price: number;
@@ -19,6 +20,9 @@ interface PLData {
   current_price: number;
   profit_zone_start: number;
   profit_zone_end: number;
+  current_pl?: number;
+  time_to_expiry?: number; // hours remaining
+  winning_probability?: number;
 }
 
 interface PLChartProps {
@@ -26,6 +30,7 @@ interface PLChartProps {
   height?: number;
   showBreakevens?: boolean;
   showCurrentPrice?: boolean;
+  variant?: 'mini' | 'standard' | 'expanded';
 }
 
 export function PLChart({ 
