@@ -49,19 +49,52 @@ export function HistoryScreen() {
         }
         const data = await resp.json();
         
-        const items: HistoricalPrediction[] = data.items.map((item: any) => ({
-          id: String(item.id),
-          date: item.date,
-          low: item.predLow ?? 0,
-          high: item.predHigh ?? 0,
-          bias: (item.bias || 'neutral') as any,
-          actualLow: item.actualLow ?? 0,
-          actualHigh: item.actualHigh ?? 0,
-          rangeHit: !!item.rangeHit,
-          notes: item.notes || `${item.source === 'ai' ? '🤖 AI prediction' : item.source === 'ai_simulation' ? '🔬 AI simulation' : '📝 Manual prediction'}`,
-          dayType: (item.dayType || 'normal') as any,
-          error: item.error ?? 0,
-        }));
+        // Process items and fetch AI prediction data
+        const items: HistoricalPrediction[] = await Promise.all(
+          data.items.map(async (item: any) => {
+            let aiPredictions: CheckpointData[] = [];
+            
+            // Fetch AI predictions for this date if source is AI
+            if (item.source === 'ai' || item.source === 'ai_simulation') {
+              try {
+                const aiResp = await fetch(`http://localhost:8000/ai/predictions/${item.date}`);
+                if (aiResp.ok) {
+                  const aiData = await aiResp.json();
+                  aiPredictions = aiData.predictions.map((pred: any) => ({
+                    checkpoint: pred.checkpoint,
+                    predicted_price: pred.predicted_price,
+                    actual_price: pred.actual_price,
+                    confidence: pred.confidence,
+                    reasoning: pred.reasoning,
+                    prediction_error: pred.prediction_error
+                  }));
+                }
+              } catch (e) {
+                console.warn('Failed to fetch AI predictions for', item.date);
+              }
+            }
+            
+            return {
+              id: String(item.id),
+              date: item.date,
+              low: item.predLow ?? 0,
+              high: item.predHigh ?? 0,
+              bias: (item.bias || 'neutral') as any,
+              actualLow: item.actualLow ?? 0,
+              actualHigh: item.actualHigh ?? 0,
+              rangeHit: !!item.rangeHit,
+              notes: item.notes || `${item.source === 'ai' ? '🤖 AI prediction' : item.source === 'ai_simulation' ? '🔬 AI simulation' : '📝 Manual prediction'}`,
+              dayType: (item.dayType || 'normal') as any,
+              error: item.error ?? 0,
+              source: item.source,
+              open: item.open,
+              noon: item.noon,
+              twoPM: item.twoPM,
+              close: item.close,
+              aiPredictions
+            };
+          })
+        );
         
         setHistoricalData(items);
       } catch (e) {
