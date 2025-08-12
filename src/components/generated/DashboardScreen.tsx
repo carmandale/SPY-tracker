@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, RotateCcw, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
+import { SuggestionCards } from './SuggestionCards';
 interface PredictionData {
   low: number;
   high: number;
@@ -368,6 +369,8 @@ export function DashboardScreen() {
         </div>
       </motion.div>
 
+      {/* Suggestion Cards */}
+      <SuggestionCards />
 
       {/* Performance Strip */}
       <motion.div initial={{
