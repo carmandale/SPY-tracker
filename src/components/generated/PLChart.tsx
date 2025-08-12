@@ -330,19 +330,20 @@ export function PLChart({
             </>
           )}
           
-          {/* P&L curve */}
+          {/* Enhanced P&L curve */}
           <Line
             type="monotone"
             dataKey="pl"
-            stroke="#006072"
-            strokeWidth={2}
+            stroke={plStatus.isWinning ? '#00D4AA' : '#FF6B6B'}
+            strokeWidth={variant === 'mini' ? 2 : 3}
             dot={false}
             activeDot={{ 
-              r: 4, 
-              fill: '#006072',
+              r: variant === 'mini' ? 4 : 6, 
+              fill: plStatus.isWinning ? '#00D4AA' : '#FF6B6B',
               stroke: '#E8ECF2',
               strokeWidth: 2,
-              style: { touchAction: 'auto' }
+              style: { touchAction: 'auto' },
+              className: 'drop-shadow-lg'
             }}
             connectNulls={false}
           />
