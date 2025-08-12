@@ -74,10 +74,25 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"AI prediction generation failed: {str(e)}")
     else:
-        # We already have stored predictions; still generate a fresh preview for analysis/sentiment display
-        try:
-            ai_preview = ai_predictor.generate_predictions(target_date)
-        except Exception:
+        # We already have stored predictions; use the stored market context
+        # NO regeneration - this was causing expensive GPT-5 calls on every page load!
+        if existing_predictions and existing_predictions[0].market_context:
+            # Reconstruct preview from stored data
+            from .ai_predictor import DayPredictions, PredictionPoint
+            ai_preview = DayPredictions(
+                date=target_date,
+                market_context=existing_predictions[0].market_context,
+                predictions=[
+                    PredictionPoint(
+                        checkpoint=pred.checkpoint,
+                        predicted_price=pred.predicted_price,
+                        confidence=pred.confidence,
+                        reasoning=pred.reasoning
+                    )
+                    for pred in existing_predictions
+                ]
+            )
+        else:
             ai_preview = None
     
     # Get actual prices if available
