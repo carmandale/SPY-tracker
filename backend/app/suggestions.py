@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import math
 
 
@@ -13,8 +13,19 @@ class Suggestion:
     expected_move: Optional[float] = None
     wings: Optional[float] = None
     center_strike: Optional[float] = None
+    put_short_strike: Optional[float] = None
+    put_long_strike: Optional[float] = None
+    call_short_strike: Optional[float] = None
+    call_long_strike: Optional[float] = None
+    max_profit: Optional[float] = None
+    max_loss: Optional[float] = None
+    breakeven_lower: Optional[float] = None
+    breakeven_upper: Optional[float] = None
+    profit_target: Optional[float] = None
+    stop_loss: Optional[float] = None
     rationale: str = ""
     note: str = ""
+    management_notes: str = ""
 
 
 def calculate_expected_move(current_price: float, iv: float, days_to_expiry: int) -> float:
