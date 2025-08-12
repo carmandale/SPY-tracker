@@ -282,7 +282,7 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
                     call_long=suggestion.get("call_long_strike", 0),
                     credit_received=suggestion.get("max_profit", 1.0),
                     current_price=current_price,
-                    price_range_pct=0.15,  # ±15% for mobile charts
+                    price_range_pct=0.08,  # ±8% focused range for better readability
                     resolution=50  # Reduced resolution for mobile performance
                 )
                 
@@ -293,7 +293,7 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
                     call_long=suggestion.get("call_long_strike", 0),
                     credit_received=suggestion.get("max_profit", 1.0),
                     current_price=current_price,
-                    price_range_pct=0.15,
+                    price_range_pct=0.08,  # ±8% focused range for better readability
                     resolution=50
                 )
             else:
