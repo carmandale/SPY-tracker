@@ -223,14 +223,14 @@ def create_ai_prediction_for_date(
     # Ensure pending inserts are flushed so queries can see them (autoflush is disabled)
     db.flush()
 
-    # derive band from just-added rows (or directly from memory if needed)
-    stored_preds = db.query(AIPrediction).filter(AIPrediction.date == target_date).all()
-    if not stored_preds:
+    # derive band from unique predictions only (fixes duplicate issue)
+    unique_preds = AIPredictionService.get_unique_predictions_for_date(db, target_date)
+    if not unique_preds:
         # fallback to in-memory predictions list
         band_prices = [p.predicted_price for p in day_predictions.predictions]
         band = {"low": float(min(band_prices)), "high": float(max(band_prices))} if band_prices else None
     else:
-        band = _compute_band_from_ai(stored_preds)
+        band = AIPredictionService.compute_band_from_predictions(unique_preds)
     if not band:
         raise HTTPException(status_code=500, detail="AI did not produce predictions")
 
