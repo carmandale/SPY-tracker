@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 from statistics import median
 
@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from .config import settings
 from .database import Base, engine, get_db
 from .models import DailyPrediction, PriceLog, AIPrediction
+from .providers import default_provider
 from .schemas import (
     DailyPredictionCreate,
     DailyPredictionRead,
