@@ -692,6 +692,71 @@ def trigger_scheduler_job(job_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Job execution failed: {str(e)}")
 
 
+@app.post("/admin/fix-duplicate-ai-predictions")
+def fix_duplicate_ai_predictions(db: Session = Depends(get_db)):
+    """Run the AI prediction deduplication migration."""
+    try:
+        from .migration_runner import MigrationRunner
+        from .config import settings
+        
+        # Close the current DB session to avoid conflicts
+        db.close()
+        
+        # Run migration with dedicated connection
+        runner = MigrationRunner(str(settings.database_url).replace("sqlite:///", ""))
+        analysis = runner.get_duplicate_analysis()
+        
+        if analysis['duplicate_count'] == 0:
+            return {
+                "status": "success",
+                "message": "No duplicates found - migration not needed",
+                "analysis": analysis
+            }
+        
+        # Run the migration
+        result = runner.run_migration("001_add_ai_prediction_unique_constraint.sql")
+        
+        return {
+            "status": "success",
+            "message": "AI prediction duplicates fixed successfully",
+            "before": analysis,
+            "after": result
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Migration failed: {str(e)}",
+            "hint": "Try stopping the server and running: python backend/fix_duplicates.py"
+        }
+
+
+@app.get("/admin/analyze-ai-prediction-duplicates") 
+def analyze_ai_prediction_duplicates(db: Session = Depends(get_db)):
+    """Analyze current AI prediction duplicate situation."""
+    try:
+        from .migration_runner import MigrationRunner
+        from .config import settings
+        
+        # Close the current DB session to avoid conflicts
+        db.close()
+        
+        runner = MigrationRunner(str(settings.database_url).replace("sqlite:///", ""))
+        analysis = runner.get_duplicate_analysis()
+        
+        return {
+            "status": "success",
+            "analysis": analysis,
+            "recommendation": "Run /admin/fix-duplicate-ai-predictions to fix" if analysis['duplicate_count'] > 0 else "No action needed"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Analysis failed: {str(e)}"
+        }
+
+
 @app.post("/admin/cleanup-future-data")
 def cleanup_future_data(db: Session = Depends(get_db)):
     """Remove any predictions or AI predictions for future dates."""
