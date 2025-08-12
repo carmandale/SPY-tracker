@@ -3,12 +3,8 @@
 Script to clean up duplicate AI predictions in the database.
 Keeps only the most recent prediction for each date+checkpoint combination.
 """
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from backend.app.database import SessionLocal
-from backend.app.models import AIPrediction
+from app.database import SessionLocal
+from app.models import AIPrediction
 from sqlalchemy import desc
 
 def cleanup_duplicate_predictions():
