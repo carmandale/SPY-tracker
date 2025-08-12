@@ -261,7 +261,7 @@ export function PLChart({
       )}
       
       <ResponsiveContainer width="100%" height={chartHeight}>
-        <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+        <LineChart data={chartData} margin={{ top: 20, right: 20, left: 8, bottom: 40 }}>
           <XAxis 
             dataKey="price"
             axisLine={false}
