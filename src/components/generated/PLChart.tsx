@@ -75,7 +75,7 @@ export function PLChart({
   };
 
   return (
-    <div className="relative">
+    <div className="relative touch-pan-y">
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
           <XAxis 
