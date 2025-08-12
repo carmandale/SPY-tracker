@@ -397,43 +397,18 @@ export function PLChart({
         </LineChart>
       </ResponsiveContainer>
       
-      {/* Enhanced Chart Annotations */}
+      {/* Enhanced Chart Annotations - Simplified to reduce overlap */}
       <div className="absolute bottom-2 left-2 right-2 flex items-end justify-between">
-        <div className="flex flex-col gap-1">
-          {variant !== 'mini' && (
-            <div className="flex items-center gap-2">
-              <div className="text-xs text-[#A7B3C5] bg-[#0B0D12]/80 px-2 py-1 rounded-full">
-                Current: ${data.current_price.toFixed(2)}
-              </div>
-              <div className={`text-xs font-mono font-bold px-2 py-1 rounded-full ${
-                plStatus.isWinning 
-                  ? 'bg-[#00D4AA]/20 text-[#00D4AA]' 
-                  : 'bg-[#FF6B6B]/20 text-[#FF6B6B]'
-              }`}>
-                {currentPL >= 0 ? '+' : ''}${currentPL.toFixed(0)}
-              </div>
-            </div>
-          )}
-          
-          {showBreakevens && (
-            <div className="text-xs text-[#64748B] bg-[#0B0D12]/80 px-2 py-1 rounded-full">
-              BE: ${data.breakeven_lower.toFixed(0)} - ${data.breakeven_upper.toFixed(0)}
-            </div>
-          )}
-        </div>
+        {showBreakevens && (
+          <div className="text-xs text-[#64748B] bg-[#0B0D12]/80 px-2 py-1 rounded-full">
+            BE: ${data.breakeven_lower.toFixed(0)} - ${data.breakeven_upper.toFixed(0)}
+          </div>
+        )}
         
-        <div className="flex flex-col items-end gap-1">
-          {variant === 'expanded' && (
-            <div className="text-xs text-[#16A34A] bg-[#0B0D12]/80 px-2 py-1 rounded-full">
-              Max: +${data.max_profit.toFixed(0)}
-            </div>
-          )}
-          
-          <div className="flex items-center gap-1">
-            <Target className="w-3 h-3 text-[#A7B3C5]" />
-            <div className="text-xs text-[#A7B3C5] bg-[#0B0D12]/80 px-2 py-1 rounded-full">
-              {data.strategy} • {data.tenor}
-            </div>
+        <div className="flex items-center gap-1">
+          <Target className="w-3 h-3 text-[#A7B3C5]" />
+          <div className="text-xs text-[#A7B3C5] bg-[#0B0D12]/80 px-2 py-1 rounded-full">
+            {data.strategy} • {data.tenor}
           </div>
         </div>
       </div>
