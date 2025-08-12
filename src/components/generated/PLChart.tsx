@@ -131,9 +131,8 @@ export function PLChart({
     return data.points.map(point => ({
       price: point.underlying_price,
       pl: point.total_pl,
-      // Split into positive and negative for gradient fills
-      plPositive: point.total_pl > 0 ? point.total_pl : 0,
-      plNegative: point.total_pl < 0 ? point.total_pl : 0,
+      // For filled area chart
+      plFill: point.total_pl,
       formatted_price: point.underlying_price.toFixed(0),
       formatted_pl: point.total_pl >= 0 ? `+$${point.total_pl.toFixed(2)}` : `-$${Math.abs(point.total_pl).toFixed(2)}`
     }));
@@ -270,13 +269,20 @@ export function PLChart({
         <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 8, bottom: 40 }}>
           {/* Gradient definitions for fill areas */}
           <defs>
+            <linearGradient id="splitGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#00D4AA" stopOpacity={0.4}/>
+              <stop offset="49%" stopColor="#00D4AA" stopOpacity={0.1}/>
+              <stop offset="50%" stopColor="transparent" stopOpacity={0}/>
+              <stop offset="51%" stopColor="#DC2626" stopOpacity={0.1}/>
+              <stop offset="100%" stopColor="#DC2626" stopOpacity={0.4}/>
+            </linearGradient>
             <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00D4AA" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#00D4AA" stopOpacity={0.05}/>
+              <stop offset="0%" stopColor="#00D4AA" stopOpacity={0.4}/>
+              <stop offset="100%" stopColor="#00D4AA" stopOpacity={0.05}/>
             </linearGradient>
             <linearGradient id="lossGradient" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="5%" stopColor="#DC2626" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#DC2626" stopOpacity={0.05}/>
+              <stop offset="0%" stopColor="#DC2626" stopOpacity={0.4}/>
+              <stop offset="100%" stopColor="#DC2626" stopOpacity={0.05}/>
             </linearGradient>
           </defs>
           <XAxis 
@@ -389,31 +395,14 @@ export function PLChart({
             />
           )}
           
-          {/* Loss area fill */}
+          {/* P&L area with fill */}
           <Area
             type="monotone"
-            dataKey="plNegative"
-            stroke="none"
-            fill="url(#lossGradient)"
-            strokeWidth={0}
-          />
-          
-          {/* Profit area fill */}
-          <Area
-            type="monotone"
-            dataKey="plPositive"
-            stroke="none"
-            fill="url(#profitGradient)"
-            strokeWidth={0}
-          />
-          
-          {/* P&L curve line */}
-          <Area
-            type="monotone"
-            dataKey="pl"
+            dataKey="plFill"
             stroke={plStatus.isWinning ? '#00D4AA' : '#FF6B6B'}
             strokeWidth={variant === 'mini' ? 2 : 3}
-            fill="none"
+            fill="url(#splitGradient)"
+            fillOpacity={1}
             dot={false}
             activeDot={{ 
               r: variant === 'mini' ? 4 : 6, 
@@ -424,6 +413,7 @@ export function PLChart({
               className: 'drop-shadow-lg'
             }}
             connectNulls={false}
+            baseValue={0}
           />
           
           <Tooltip content={<CustomTooltip />} />
