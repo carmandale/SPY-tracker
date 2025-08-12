@@ -78,7 +78,7 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
         # NO regeneration - this was causing expensive GPT-5 calls on every page load!
         if existing_predictions and existing_predictions[0].market_context:
             # Reconstruct preview from stored data
-            from .ai_predictor import DayPredictions, PredictionPoint
+            from .ai_predictor import DayPredictions, PricePrediction
             ai_preview = DayPredictions(
                 date=target_date,
                 market_context=existing_predictions[0].market_context,
