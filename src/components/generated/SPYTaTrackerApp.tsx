@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Target, History, TrendingUp, RefreshCw } from 'lucide-react';
+import { BarChart3, Target, History, TrendingUp } from 'lucide-react';
 import { DashboardScreen } from './DashboardScreen';
 import { PredictScreen } from './PredictScreen';
 import { HistoryScreen } from './HistoryScreen';
@@ -8,13 +8,6 @@ import { MetricsScreen } from './MetricsScreen';
 type Screen = 'dashboard' | 'predict' | 'history' | 'metrics';
 export function SPYTaTrackerApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    // Simulate refresh delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
-  };
   const getCurrentDate = () => {
     return new Date().toLocaleDateString('en-US', {
       weekday: 'short',
@@ -55,33 +48,36 @@ export function SPYTaTrackerApp() {
     }
   };
   return <div className="min-h-screen bg-[#0B0D12] text-[#E8ECF2] flex flex-col">
-      {/* Global Header */}
-      <header className="flex items-center justify-between p-4 border-b border-white/8">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#006072] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">S</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold">SPY TA Tracker</h1>
-            <p className="text-xs text-[#A7B3C5]">{getCurrentDate()} CST</p>
+      {/* Global Header with Navigation */}
+      <header className="border-b border-white/8">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#006072] rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">S</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold">SPY TA Tracker</h1>
+              <p className="text-xs text-[#A7B3C5]">{getCurrentDate()} CST</p>
+            </div>
           </div>
         </div>
         
-        <motion.button onClick={handleRefresh} disabled={isRefreshing} whileTap={{
-        scale: 0.95
-      }} className="p-2 rounded-lg bg-[#12161D] border border-white/8 disabled:opacity-50">
-          <motion.div animate={isRefreshing ? {
-          rotate: 360
-        } : {
-          rotate: 0
-        }} transition={{
-          duration: 1,
-          repeat: isRefreshing ? Infinity : 0,
-          ease: "linear"
-        }}>
-            <RefreshCw className="w-5 h-5 text-[#A7B3C5]" />
-          </motion.div>
-        </motion.button>
+        {/* Top Navigation */}
+        <nav className="bg-[#12161D] px-4 pb-2">
+          <div className="flex items-center gap-1">
+            {navItems.map(item => {
+            const Icon = item.icon;
+            const isActive = activeScreen === item.id;
+            return <motion.button key={item.id} onClick={() => setActiveScreen(item.id)} whileTap={{
+              scale: 0.95
+            }} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors relative ${isActive ? 'text-[#006072] bg-[#006072]/10' : 'text-[#A7B3C5] hover:text-[#E8ECF2]'}`}>
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                  {isActive && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#006072] rounded-full" />}
+                </motion.button>;
+          })}
+          </div>
+        </nav>
       </header>
 
       {/* Main Content */}
@@ -101,22 +97,5 @@ export function SPYTaTrackerApp() {
           {renderScreen()}
         </motion.div>
       </main>
-
-      {/* Bottom Navigation */}
-      <nav className="border-t border-white/8 bg-[#12161D] p-2">
-        <div className="flex items-center justify-around">
-          {navItems.map(item => {
-          const Icon = item.icon;
-          const isActive = activeScreen === item.id;
-          return <motion.button key={item.id} onClick={() => setActiveScreen(item.id)} whileTap={{
-            scale: 0.95
-          }} className={`flex flex-col items-center gap-1 p-3 rounded-lg transition-colors ${isActive ? 'text-[#006072] bg-[#006072]/10' : 'text-[#A7B3C5] hover:text-[#E8ECF2]'}`}>
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{item.label}</span>
-                {isActive && <motion.div layoutId="activeTab" className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#006072] rounded-full" />}
-              </motion.button>;
-        })}
-        </div>
-      </nav>
     </div>;
 }
