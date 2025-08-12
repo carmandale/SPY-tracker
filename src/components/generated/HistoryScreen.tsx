@@ -21,32 +21,30 @@ export function HistoryScreen() {
   const [historicalData, setHistoricalData] = useState<HistoricalPrediction[]>([]);
 
   useEffect(() => {
-    // Fetch last 20 days from API
+    // Fetch historical data from new history endpoint
     const load = async () => {
       try {
-        const today = new Date();
-        const items: HistoricalPrediction[] = [];
-        for (let i = 0; i < 20; i++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() - i);
-          const iso = d.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
-          const resp = await fetch(`http://localhost:8000/day/${iso}`);
-          if (!resp.ok) continue;
-          const data = await resp.json();
-          items.push({
-            id: String(data.id),
-            date: data.date,
-            low: data.predLow ?? 0,
-            high: data.predHigh ?? 0,
-            bias: (data.bias || 'neutral') as any,
-            actualLow: data.realizedLow ?? data.low ?? 0,
-            actualHigh: data.realizedHigh ?? data.high ?? 0,
-            rangeHit: !!data.rangeHit,
-            notes: data.notes || data.volCtx || '',
-            dayType: (data.dayType || 'normal') as any,
-            error: data.absErrorToClose ?? 0,
-          });
+        const resp = await fetch(`http://localhost:8000/history?limit=20`);
+        if (!resp.ok) {
+          console.error('Failed to fetch history:', resp.status);
+          return;
         }
+        const data = await resp.json();
+        
+        const items: HistoricalPrediction[] = data.items.map((item: any) => ({
+          id: String(item.id),
+          date: item.date,
+          low: item.predLow ?? 0,
+          high: item.predHigh ?? 0,
+          bias: (item.bias || 'neutral') as any,
+          actualLow: item.actualLow ?? 0,
+          actualHigh: item.actualHigh ?? 0,
+          rangeHit: !!item.rangeHit,
+          notes: item.notes || `${item.source === 'ai' ? '🤖 AI' : '📝 Manual'} prediction`,
+          dayType: (item.dayType || 'normal') as any,
+          error: item.error ?? 0,
+        }));
+        
         setHistoricalData(items);
       } catch (e) {
         console.error('Failed to load history', e);
@@ -55,6 +53,7 @@ export function HistoryScreen() {
     load();
   }, []);
 
+  // Enhanced static sample data for testing when no real data available
   const staticData: HistoricalPrediction[] = [{
     id: '1',
     date: '2024-01-15',
@@ -115,6 +114,30 @@ export function HistoryScreen() {
     notes: 'Low volume day, tight range expected',
     dayType: 'normal',
     error: 0.25
+  }, {
+    id: '6',
+    date: '2024-01-10',
+    low: 574.75,
+    high: 579.50,
+    bias: 'bearish',
+    actualLow: 573.25,
+    actualHigh: 578.80,
+    rangeHit: true,
+    notes: '🤖 AI prediction - Technical breakdown below 575',
+    dayType: 'normal',
+    error: 0.70
+  }, {
+    id: '7',
+    date: '2024-01-09',
+    low: 572.00,
+    high: 576.75,
+    bias: 'neutral',
+    actualLow: 570.50,
+    actualHigh: 577.25,
+    rangeHit: false,
+    notes: '📝 Manual prediction - Range trading expected',
+    dayType: 'normal',
+    error: 1.50
   }];
   const filterOptions = [{
     value: 'all' as const,
