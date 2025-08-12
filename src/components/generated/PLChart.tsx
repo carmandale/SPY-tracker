@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip, defs, linearGradient, stop } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingUp, TrendingDown, Clock, AlertTriangle, Target } from 'lucide-react';
 
 interface PLPoint {
