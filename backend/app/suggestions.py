@@ -35,6 +35,43 @@ def calculate_expected_move(current_price: float, iv: float, days_to_expiry: int
     return current_price * iv * math.sqrt(days_to_expiry / 365.0)
 
 
+def round_to_strike(price: float, interval: float = 1.0) -> float:
+    """Round price to nearest valid strike price (typically $1 intervals for SPY)"""
+    return round(price / interval) * interval
+
+
+def calculate_strike_from_delta(current_price: float, delta: float, iv: float, days: int, is_call: bool = True) -> float:
+    """
+    Approximate strike price for a given delta using simplified Black-Scholes.
+    This is a rough approximation for MVP - real implementation would use proper Greeks.
+    """
+    # Simplified approximation: strikes move roughly linearly with delta near ATM
+    # For puts: strike ≈ current_price * (1 - delta * iv * sqrt(days/365))
+    # For calls: strike ≈ current_price * (1 + delta * iv * sqrt(days/365))
+    time_factor = math.sqrt(days / 365.0)
+    
+    if is_call:
+        strike = current_price * (1 + delta * iv * time_factor * 2.5)  # 2.5 is approximation factor
+    else:
+        strike = current_price * (1 - delta * iv * time_factor * 2.5)
+    
+    return round_to_strike(strike)
+
+
+def calculate_ic_metrics(wing_width: float, credit: float) -> Tuple[float, float]:
+    """Calculate max profit and max loss for Iron Condor"""
+    max_profit = credit
+    max_loss = wing_width - credit
+    return max_profit, max_loss
+
+
+def calculate_ib_metrics(wing_width: float, credit: float) -> Tuple[float, float]:
+    """Calculate max profit and max loss for Iron Butterfly"""
+    max_profit = credit
+    max_loss = wing_width - credit
+    return max_profit, max_loss
+
+
 def generate_suggestions(
     current_price: Optional[float] = None,
     bias: str = "Neutral",
