@@ -477,6 +477,7 @@ from .ai_endpoints import (
     demo_ai_prediction_system,
     create_ai_prediction_for_date,
 )
+from .historical_simulation import historical_simulator
 from .config import settings
 
 @app.get("/ai/predictions/{target_date}")
