@@ -57,7 +57,57 @@ def start_scheduler(get_db_session_callable):
         max_instances=1,
     )
 
+    # Schedule automated price capture at key trading times (CST timezone)
+    # Pre-market capture at 08:00 CST (before market open)
+    scheduler.add_job(
+        lambda: _run_capture(get_db_session_callable, "preMarket"),
+        CronTrigger.from_crontab("0 8 * * 1-5", timezone=ZoneInfo(settings.timezone)),
+        id="capture_premarket",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    # Market open capture at 08:30 CST
+    scheduler.add_job(
+        lambda: _run_capture(get_db_session_callable, "open"),
+        CronTrigger.from_crontab("30 8 * * 1-5", timezone=ZoneInfo(settings.timezone)),
+        id="capture_open",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    # Noon capture at 12:00 CST
+    scheduler.add_job(
+        lambda: _run_capture(get_db_session_callable, "noon"),
+        CronTrigger.from_crontab("0 12 * * 1-5", timezone=ZoneInfo(settings.timezone)),
+        id="capture_noon",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    # 2PM capture at 14:00 CST
+    scheduler.add_job(
+        lambda: _run_capture(get_db_session_callable, "twoPM"),
+        CronTrigger.from_crontab("0 14 * * 1-5", timezone=ZoneInfo(settings.timezone)),
+        id="capture_2pm",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    # Market close capture at 15:00 CST
+    scheduler.add_job(
+        lambda: _run_capture(get_db_session_callable, "close"),
+        CronTrigger.from_crontab("0 15 * * 1-5", timezone=ZoneInfo(settings.timezone)),
+        id="capture_close",
+        replace_existing=True,
+        max_instances=1,
+    )
+
     scheduler.start()
+    print(f"📅 Scheduler started with {len(scheduler.get_jobs())} jobs:")
+    for job in scheduler.get_jobs():
+        print(f"   - {job.id}: {job.next_run_time}")
+    
     return scheduler
 
 
