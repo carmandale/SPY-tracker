@@ -11,8 +11,8 @@ from .models import DailyPrediction, PriceLog
 from .ai_endpoints import create_ai_prediction_for_date
 
 
-# Single daily AI prediction run at 08:30 CST (weekdays)
-AI_PREDICTION_CRON = "30 8 * * 1-5"
+# Daily AI prediction run at 08:00 CST (weekdays) - fresh each morning
+AI_PREDICTION_CRON = "0 8 * * 1-5"
 
 
 def capture_price(db: Session, checkpoint: str) -> None:
