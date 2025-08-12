@@ -49,7 +49,7 @@ The following features have been implemented:
 - Chart library integration (Recharts already installed)
 - Timezone handling for CST/CDT
 
-## Phase 2: Suggestions Engine
+## Phase 2: Suggestions Engine (Completed)
 
 **Goal:** Generate IC/IB suggestions based on predictions
 **Success Criteria:** Display actionable option structures for 0DTE/1W/1M
@@ -57,15 +57,15 @@ The following features have been implemented:
 
 ### Must-Have Features
 
-- [ ] Suggestion generation logic - IC vs IB selection algorithm `L`
-- [ ] Delta target calculations - Compute optimal strike positions `M`
-- [ ] Three horizon suggestions - 0DTE, 1-week, 1-month structures `M`
-- [ ] Suggestion display cards - Mobile-optimized UI components `M`
+- [x] Suggestion generation logic - IC vs IB selection algorithm `L`
+- [x] Delta target calculations - Compute optimal strike positions `M`
+- [x] Three horizon suggestions - 0DTE, 1-week, 1-month structures `M`
+- [x] Suggestion display cards - Mobile-optimized UI components `M`
 
 ### Should-Have Features
 
-- [ ] Expected move calculations - Use IV for position sizing `M`
-- [ ] Management notes - Profit targets and exit strategies `S`
+- [x] Expected move calculations - Use IV for position sizing `M`
+- [x] Management notes - Profit targets and exit strategies `S`
 - [ ] Risk filters - Skip low IVR scenarios `S`
 
 ### Dependencies
