@@ -43,6 +43,9 @@ class PriceLog(Base):
 
 class AIPrediction(Base):
     __tablename__ = "ai_predictions"
+    __table_args__ = (
+        UniqueConstraint('date', 'checkpoint', name='uq_ai_prediction_date_checkpoint'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     date = Column(Date, index=True, nullable=False)
