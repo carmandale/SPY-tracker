@@ -367,17 +367,17 @@ export function PLChart({
             <ReferenceLine 
               x={data.current_price} 
               stroke="#FFD700"
-              strokeWidth={6}
+              strokeWidth={1}
               opacity={1}
               isFront={true}
               label={{
-                value: `TODAY $${data.current_price.toFixed(2)}`,
-                position: 'bottom',
-                offset: 15,
+                value: `$${data.current_price.toFixed(0)}`,
+                position: 'top',
+                offset: 2,
                 style: {
-                  fontSize: '12px',
+                  fontSize: '8px',
                   fill: '#FFD700',
-                  fontWeight: 'bold'
+                  fontWeight: 'normal'
                 }
               }}
             />
