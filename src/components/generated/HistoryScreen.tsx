@@ -282,7 +282,7 @@ export function HistoryScreen() {
                   <div className="text-center">
                     <p className="text-xs text-[#A7B3C5] mb-1">Actual</p>
                     <p className="text-sm font-mono">
-                      ${prediction.actualLow} - ${prediction.actualHigh}
+                      ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)}
                     </p>
                   </div>
                 </div>
