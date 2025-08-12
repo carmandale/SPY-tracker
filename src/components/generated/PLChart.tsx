@@ -320,21 +320,57 @@ export function PLChart({
             stroke="none"
           />
           
-          {/* Current price line with enhanced styling */}
+          {/* Strike price markers */}
+          {data.strikes && Object.entries(data.strikes).map(([strikeType, strikePrice]) => {
+            if (!strikePrice) return null;
+            
+            // Style strikes differently based on type
+            const isShortStrike = strikeType.includes('short') || strikeType === 'center_strike';
+            const isPutStrike = strikeType.includes('put');
+            const isCallStrike = strikeType.includes('call');
+            
+            return (
+              <ReferenceLine
+                key={strikeType}
+                x={strikePrice}
+                stroke={isShortStrike ? '#DC2626' : '#64748B'}
+                strokeWidth={isShortStrike ? 2 : 1}
+                strokeDasharray={isShortStrike ? '4 2' : '2 4'}
+                opacity={0.7}
+                label={{
+                  value: `$${Math.round(strikePrice)}`,
+                  position: 'top',
+                  style: {
+                    fontSize: '10px',
+                    fill: isShortStrike ? '#DC2626' : '#64748B',
+                    fontWeight: isShortStrike ? 'bold' : 'normal'
+                  }
+                }}
+              />
+            );
+          })}
+          
+          {/* Current price line with enhanced styling - moved after strikes so it's on top */}
           {showCurrentPrice && (
             <>
               <ReferenceLine 
                 x={data.current_price} 
                 stroke="#FFD700"
-                strokeWidth={3}
+                strokeWidth={4}
                 strokeDasharray="none"
-                opacity={0.9}
-              />
-              {/* Current P&L indicator dot */}
-              <ReferenceLine 
-                x={data.current_price}
-                y={currentPL}
-                stroke="none"
+                opacity={1}
+                label={{
+                  value: 'TODAY',
+                  position: 'topLeft',
+                  style: {
+                    fontSize: '10px',
+                    fill: '#FFD700',
+                    fontWeight: 'bold',
+                    backgroundColor: '#0B0D12',
+                    padding: '2px 4px',
+                    borderRadius: '4px'
+                  }
+                }}
               />
             </>
           )}
