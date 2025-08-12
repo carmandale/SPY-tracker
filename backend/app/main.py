@@ -299,6 +299,24 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
             else:
                 continue  # Skip unknown strategy types
                 
+            # Calculate current P&L at current price
+            current_pl = pl_calculator.calculate_current_pl(
+                strategy_type=strategy_type,
+                strikes={
+                    'put_long': suggestion.get("put_long_strike"),
+                    'put_short': suggestion.get("put_short_strike"), 
+                    'call_short': suggestion.get("call_short_strike"),
+                    'call_long': suggestion.get("call_long_strike"),
+                    'center_strike': suggestion.get("center_strike")
+                } if strategy_type == "Iron Condor" else {
+                    'put_long': suggestion.get("put_long_strike"),
+                    'center_strike': suggestion.get("center_strike"),
+                    'call_long': suggestion.get("call_long_strike")
+                },
+                credit_received=suggestion.get("max_profit", 1.0),
+                current_price=current_price
+            )
+            
             # Convert to serializable format
             pl_data_dict = {
                 "tenor": suggestion.get("tenor"),
@@ -318,7 +336,8 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
                 "max_loss": pl_data.max_loss,
                 "current_price": pl_data.current_price,
                 "profit_zone_start": pl_data.profit_zone_start,
-                "profit_zone_end": pl_data.profit_zone_end
+                "profit_zone_end": pl_data.profit_zone_end,
+                "current_pl": current_pl
             }
             
             pl_data_list.append(pl_data_dict)
