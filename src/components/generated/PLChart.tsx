@@ -141,17 +141,64 @@ export function PLChart({
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const price = parseFloat(label);
       const pl = payload[0].value;
       const isProfit = pl >= 0;
       
+      // Calculate distance from current price and breakevens
+      const priceDistance = ((price - data.current_price) / data.current_price * 100);
+      const toBreakevenLower = Math.abs(price - data.breakeven_lower);
+      const toBreakevenUpper = Math.abs(price - data.breakeven_upper);
+      const nearestBreakeven = toBreakevenLower < toBreakevenUpper ? 
+        { distance: toBreakevenLower, label: 'Lower BE' } : 
+        { distance: toBreakevenUpper, label: 'Upper BE' };
+      
+      // Determine zone
+      const inProfitZone = price >= data.profit_zone_start && price <= data.profit_zone_end;
+      const zone = inProfitZone ? 'Profit Zone' : 
+                   price < data.breakeven_lower ? 'Loss Zone (Put Side)' : 
+                   price > data.breakeven_upper ? 'Loss Zone (Call Side)' : 'Breakeven Zone';
+      
       return (
-        <div className="bg-[#0B0D12] border border-white/8 rounded-lg p-3 shadow-lg min-w-[120px]">
-          <p className="text-sm text-[#A7B3C5] mb-1 font-medium">
-            Price: ${parseFloat(label).toFixed(0)}
-          </p>
-          <p className={`text-sm font-mono font-bold ${isProfit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
-            P&L: {isProfit ? '+' : ''}${pl.toFixed(2)}
-          </p>
+        <div className="bg-[#0B0D12]/95 border border-white/12 rounded-lg p-4 shadow-2xl min-w-[180px] backdrop-blur-sm">
+          {/* Price Header */}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-[#A7B3C5] font-medium">
+              Price: ${price.toFixed(2)}
+            </p>
+            <p className={`text-xs px-2 py-1 rounded-full ${
+              Math.abs(priceDistance) < 1 ? 'bg-yellow-500/20 text-yellow-300' :
+              Math.abs(priceDistance) < 3 ? 'bg-blue-500/20 text-blue-300' :
+              'bg-gray-500/20 text-gray-300'
+            }`}>
+              {priceDistance >= 0 ? '+' : ''}{priceDistance.toFixed(1)}%
+            </p>
+          </div>
+          
+          {/* P&L Display */}
+          <div className="mb-3">
+            <p className={`text-lg font-mono font-bold ${isProfit ? 'text-[#00D4AA]' : 'text-[#FF6B6B]'}`}>
+              {isProfit ? '+' : ''}${pl.toFixed(2)}
+            </p>
+            <p className="text-xs text-[#A7B3C5]">
+              P&L at this price
+            </p>
+          </div>
+
+          {/* Zone Information */}
+          <div className="border-t border-white/8 pt-2">
+            <p className={`text-xs font-medium ${
+              zone === 'Profit Zone' ? 'text-[#00D4AA]' : 
+              zone.includes('Loss') ? 'text-[#FF6B6B]' : 'text-[#F59E0B]'
+            }`}>
+              {zone}
+            </p>
+            {nearestBreakeven.distance < 10 && (
+              <p className="text-xs text-[#64748B] mt-1">
+                ${nearestBreakeven.distance.toFixed(2)} from {nearestBreakeven.label}
+              </p>
+            )}
+          </div>
         </div>
       );
     }
