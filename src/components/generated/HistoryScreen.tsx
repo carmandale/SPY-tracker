@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus, Calendar, Target, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Calendar, Target, CheckCircle, XCircle, Filter, Activity, Clock } from 'lucide-react';
+
+interface CheckpointData {
+  checkpoint: string;
+  predicted_price: number;
+  actual_price: number | null;
+  confidence: number;
+  reasoning: string;
+  prediction_error: number | null;
+}
+
 interface HistoricalPrediction {
   id: string;
   date: string;
@@ -13,6 +23,14 @@ interface HistoricalPrediction {
   notes: string;
   dayType: 'opex' | 'fomc' | 'earnings' | 'normal';
   error: number;
+  source?: 'ai' | 'manual' | 'ai_simulation';
+  // Checkpoint prices from DailyPrediction
+  open?: number;
+  noon?: number;
+  twoPM?: number;
+  close?: number;
+  // AI Prediction data for detailed breakdown
+  aiPredictions?: CheckpointData[];
 }
 type FilterType = 'all' | 'hits' | 'misses' | 'week' | 'month';
 export function HistoryScreen() {
