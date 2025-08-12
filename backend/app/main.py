@@ -277,20 +277,25 @@ def get_history(
             error = abs(pred.close - pred_mid)
         
         # Calculate actual low/high from available price points
-        # Show partial actual range even for incomplete days
-        prices = []
-        if pred.open is not None:
-            prices.append(pred.open)
-        if pred.noon is not None:
-            prices.append(pred.noon)
-        if pred.twoPM is not None:
-            prices.append(pred.twoPM)
+        # For complete days (with close), show full range
+        # For incomplete days, show None to avoid misleading data
         if pred.close is not None:
+            # Day is complete, calculate actual range
+            prices = []
+            if pred.open is not None:
+                prices.append(pred.open)
+            if pred.noon is not None:
+                prices.append(pred.noon)
+            if pred.twoPM is not None:
+                prices.append(pred.twoPM)
             prices.append(pred.close)
-        
-        # Only show actual range if we have at least one price
-        actual_low = min(prices) if prices else None
-        actual_high = max(prices) if prices else None
+            
+            actual_low = min(prices) if prices else None
+            actual_high = max(prices) if prices else None
+        else:
+            # Day incomplete - don't show misleading partial range
+            actual_low = None
+            actual_high = None
         
         history_items.append({
             "id": pred.id,
