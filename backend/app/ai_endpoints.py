@@ -104,19 +104,8 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
     total_error = 0
     accurate_predictions = 0
     
-    # Group predictions by checkpoint to avoid duplicates
-    checkpoint_map = {}
+    # Process unique predictions (service already handles deduplication)
     for ai_pred in existing_predictions:
-        # Keep only the most recent prediction for each checkpoint
-        if ai_pred.checkpoint not in checkpoint_map or ai_pred.id > checkpoint_map[ai_pred.checkpoint].id:
-            checkpoint_map[ai_pred.checkpoint] = ai_pred
-    
-    # Process unique predictions
-    for checkpoint in ["open", "noon", "twoPM", "close"]:
-        if checkpoint not in checkpoint_map:
-            continue
-            
-        ai_pred = checkpoint_map[checkpoint]
         
         # Get actual price for this checkpoint
         actual_price = None
