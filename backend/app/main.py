@@ -140,7 +140,10 @@ def create_or_update_prediction_by_date(
 def get_day(day: date, db: Session = Depends(get_db)):
     pred = db.query(DailyPrediction).filter(DailyPrediction.date == day).first()
     if pred is None:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise DataNotFoundException(
+            f"No prediction data found for {day.isoformat()}",
+            {"date": day.isoformat(), "hint": "Try entering a prediction for this date first"}
+        )
     return _serialize_prediction(pred)
 
 
@@ -203,7 +206,10 @@ def recompute_day(
     """Recompute derived fields for a given date"""
     pred = db.query(DailyPrediction).filter(DailyPrediction.date == date).first()
     if pred is None:
-        raise HTTPException(status_code=404, detail="No prediction found for this date")
+        raise DataNotFoundException(
+            f"No prediction found for {date.isoformat()}",
+            {"date": date.isoformat(), "action": "recompute"}
+        )
     
     _update_derived_fields(pred)
     db.commit()
@@ -413,7 +419,10 @@ def get_market_data(symbol: str = "SPY"):
         market_data = default_provider.get_market_data(symbol.upper())
         
         if not market_data:
-            raise HTTPException(status_code=404, detail="Market data not available")
+            raise MarketDataException(
+                f"Market data not available for {symbol.upper()}",
+                {"symbol": symbol.upper(), "provider": "yfinance"}
+            )
         
         # Add market status
         market_data["market_open"] = default_provider.is_market_open()
@@ -425,8 +434,13 @@ def get_market_data(symbol: str = "SPY"):
             "cached": False  # Could implement cache detection later
         }
         
+    except MarketDataException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch market data: {str(e)}")
+        raise MarketDataException(
+            f"Failed to fetch market data for {symbol.upper()}",
+            {"symbol": symbol.upper(), "error": str(e)}
+        )
 
 
 @app.get("/market-status")
@@ -445,7 +459,10 @@ def get_market_status():
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get market status: {str(e)}")
+        raise MarketDataException(
+            "Failed to get market status",
+            {"error": str(e), "hint": "Market data provider may be unavailable"}
+        )
 
 
 @app.get("/healthz")
