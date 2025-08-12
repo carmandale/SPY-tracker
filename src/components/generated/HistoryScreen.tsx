@@ -267,6 +267,53 @@ export function HistoryScreen() {
     const totalError = filteredData.reduce((sum, d) => sum + d.error, 0);
     return (totalError / filteredData.length).toFixed(2);
   };
+
+  // Trading visualization helpers
+  const getCheckpointAccuracy = (prediction: HistoricalPrediction) => {
+    if (!prediction.aiPredictions?.length) return [];
+    
+    return prediction.aiPredictions.map(ai => ({
+      checkpoint: ai.checkpoint,
+      isAccurate: ai.prediction_error !== null && ai.prediction_error < 2.0, // Within $2
+      error: ai.prediction_error,
+      confidence: ai.confidence,
+      hasActual: ai.actual_price !== null
+    }));
+  };
+
+  const getCheckpointIcon = (checkpoint: string) => {
+    const iconMap: { [key: string]: string } = {
+      'open': '🔔',
+      'noon': '🕛', 
+      'twoPM': '🕐',
+      'close': '🔚'
+    };
+    return iconMap[checkpoint] || '⏱️';
+  };
+
+  const formatCheckpointName = (checkpoint: string) => {
+    const nameMap: { [key: string]: string } = {
+      'open': 'Open',
+      'noon': 'Noon',
+      'twoPM': '2PM',
+      'close': 'Close'
+    };
+    return nameMap[checkpoint] || checkpoint;
+  };
+
+  const calculateRangeSizing = (prediction: HistoricalPrediction) => {
+    const predictedWidth = prediction.high - prediction.low;
+    const actualWidth = prediction.actualHigh - prediction.actualLow;
+    const difference = actualWidth - predictedWidth;
+    
+    return {
+      predictedWidth,
+      actualWidth,
+      difference,
+      isWider: difference > 0,
+      percentDiff: predictedWidth > 0 ? (difference / predictedWidth) * 100 : 0
+    };
+  };
   return <div className="p-4 space-y-6">
       {/* Header */}
       <div className="text-center">
