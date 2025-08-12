@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException, Path, Body
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .config import settings
 from .database import Base, engine, get_db
@@ -20,9 +20,25 @@ from .schemas import (
 )
 from .scheduler import start_scheduler
 from .suggestions import generate_suggestions
+from .exceptions import (
+    SPYTrackerException,
+    DataNotFoundException,
+    MarketDataException,
+    PredictionLockedException,
+    spy_tracker_exception_handler,
+    validation_exception_handler,
+    http_exception_handler,
+    general_exception_handler,
+)
 
 
 app = FastAPI(title=settings.app_name)
+
+# Register exception handlers
+app.add_exception_handler(SPYTrackerException, spy_tracker_exception_handler)
+app.add_exception_handler(ValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 # Use FRONTEND_ORIGIN from settings
 origins = [settings.frontend_origin] if settings.frontend_origin != "*" else ["*"]
