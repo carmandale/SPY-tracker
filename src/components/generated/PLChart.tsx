@@ -339,7 +339,8 @@ export function PLChart({
                 opacity={0.7}
                 label={{
                   value: `$${Math.round(strikePrice)}`,
-                  position: 'top',
+                  position: 'topLeft',
+                  offset: 5,
                   style: {
                     fontSize: '10px',
                     fill: isShortStrike ? '#DC2626' : '#64748B',
