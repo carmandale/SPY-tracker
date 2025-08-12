@@ -37,7 +37,9 @@ interface SuggestionCardsProps {
 
 export function SuggestionCards({ date }: SuggestionCardsProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [plData, setPLData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
