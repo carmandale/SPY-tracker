@@ -176,8 +176,16 @@ class MigrationRunner:
 def run_ai_prediction_cleanup():
     """Run the AI prediction deduplication migration."""
     from .config import settings
+    import os
     
-    runner = MigrationRunner(settings.database_path)
+    # Extract path from database_url
+    db_path = settings.database_url.replace("sqlite:///", "")
+    if not os.path.isabs(db_path):
+        # Make it absolute relative to backend directory
+        backend_dir = os.path.dirname(os.path.dirname(__file__))
+        db_path = os.path.join(backend_dir, db_path)
+    
+    runner = MigrationRunner(db_path)
     
     print("🔍 Analyzing duplicate AI predictions...")
     analysis = runner.get_duplicate_analysis()
