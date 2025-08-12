@@ -145,11 +145,13 @@ export function PLChart({
             strokeWidth={2}
             dot={false}
             activeDot={{ 
-              r: 3, 
+              r: 4, 
               fill: '#006072',
               stroke: '#E8ECF2',
-              strokeWidth: 1
+              strokeWidth: 2,
+              style: { touchAction: 'auto' }
             }}
+            connectNulls={false}
           />
           
           <Tooltip content={<CustomTooltip />} />
