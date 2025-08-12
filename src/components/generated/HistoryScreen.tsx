@@ -276,7 +276,7 @@ export function HistoryScreen() {
                   <div className="text-center">
                     <p className="text-xs text-[#A7B3C5] mb-1">Predicted</p>
                     <p className="text-sm font-mono">
-                      ${prediction.low} - ${prediction.high}
+                      ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)}
                     </p>
                   </div>
                   <div className="text-center">
