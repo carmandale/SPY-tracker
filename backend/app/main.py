@@ -20,6 +20,7 @@ from .schemas import (
 )
 from .scheduler import start_scheduler
 from .suggestions import generate_suggestions
+from .pl_calculations import pl_calculator, PLData
 from .exceptions import (
     SPYTrackerException,
     DataNotFoundException,
