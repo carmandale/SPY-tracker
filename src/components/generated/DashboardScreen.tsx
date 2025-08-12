@@ -13,6 +13,7 @@ interface PriceData {
   price: number | null;
   label: string;
 }
+interface ChartPoint { time: string; actual: number }
 interface OptionsSetup {
   type: 'Iron Condor' | 'Iron Butterfly';
   expiration: '0DTE' | '1W' | '1M';
@@ -142,11 +143,9 @@ export function DashboardScreen() {
 
     loadTodayData();
   }, []);
-  const [isUpdatingOptions, setIsUpdatingOptions] = useState(false);
-  
   // Generate chart data from actual prediction/price points only
-  const chartData = React.useMemo(() => {
-    const data = [];
+  const chartData = React.useMemo<ChartPoint[]>(() => {
+    const data: ChartPoint[] = [];
     
     // Add only the actual price points (no interpolation)
     keyTimes.forEach(item => {
@@ -165,28 +164,6 @@ export function DashboardScreen() {
       return timeA - timeB;
     });
   }, [keyTimes]);
-  const optionsSetups: OptionsSetup[] = [{
-    type: 'Iron Condor',
-    expiration: '0DTE',
-    strikes: '633/635/639/641',
-    delta: '±15Δ',
-    wings: '$2.50',
-    targetCredit: '$0.85'
-  }, {
-    type: 'Iron Butterfly',
-    expiration: '1W',
-    strikes: '637/637/637',
-    delta: '±20Δ',
-    wings: '$3.00',
-    targetCredit: '$1.25'
-  }, {
-    type: 'Iron Condor',
-    expiration: '1M',
-    strikes: '628/633/641/646',
-    delta: '±25Δ',
-    wings: '$5.00',
-    targetCredit: '$2.10'
-  }];
   const handlePriceUpdate = async (index: number) => {
     const checkpoint = keyTimes[index];
     const checkpointName = checkpoint.label.toLowerCase() === '2:00' ? 'twoPM' : checkpoint.label.toLowerCase();
@@ -234,11 +211,6 @@ export function DashboardScreen() {
       console.error('Error capturing price:', error);
       alert('Failed to capture price. Please try again.');
     }
-  };
-  const handleUpdateOptions = async () => {
-    setIsUpdatingOptions(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsUpdatingOptions(false);
   };
   const getBiasIcon = (bias: string) => {
     switch (bias) {
@@ -396,67 +368,6 @@ export function DashboardScreen() {
         </div>
       </motion.div>
 
-      {/* Options Suggestions */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-[#A7B3C5]">Options Setups</h3>
-          <motion.button onClick={handleUpdateOptions} disabled={isUpdatingOptions} whileTap={{
-          scale: 0.95
-        }} className="flex items-center gap-2 px-3 py-1 bg-[#006072] text-white text-xs rounded-lg disabled:opacity-50">
-            <motion.div animate={isUpdatingOptions ? {
-            rotate: 360
-          } : {
-            rotate: 0
-          }} transition={{
-            duration: 1,
-            repeat: isUpdatingOptions ? Infinity : 0,
-            ease: "linear"
-          }}>
-              <RefreshCw className="w-3 h-3" />
-            </motion.div>
-            Update
-          </motion.button>
-        </div>
-        
-        <div className="space-y-3">
-          {optionsSetups.map((setup, index) => <motion.div key={index} initial={{
-          opacity: 0,
-          x: -20
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} transition={{
-          delay: index * 0.1
-        }} className="bg-[#12161D] rounded-xl p-4 border border-white/8">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{setup.type}</span>
-                  <span className="px-2 py-1 bg-[#006072] text-white text-xs rounded-full">
-                    {setup.expiration}
-                  </span>
-                </div>
-                <span className="text-sm font-mono font-bold text-[#16A34A]">
-                  {setup.targetCredit}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 text-xs">
-                <div>
-                  <p className="text-[#A7B3C5] mb-1">Strikes</p>
-                  <p className="font-mono">{setup.strikes}</p>
-                </div>
-                <div>
-                  <p className="text-[#A7B3C5] mb-1">Delta</p>
-                  <p className="font-mono">{setup.delta}</p>
-                </div>
-                <div>
-                  <p className="text-[#A7B3C5] mb-1">Wings</p>
-                  <p className="font-mono">{setup.wings}</p>
-                </div>
-              </div>
-            </motion.div>)}
-        </div>
-      </div>
 
       {/* Performance Strip */}
       <motion.div initial={{

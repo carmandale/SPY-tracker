@@ -1,46 +1,194 @@
-import React, { useState } from 'react';
-import { PredictionForm } from '@/components/PredictionForm';
-import { PredictionFormData } from '@/lib/schemas';
+import React, { useEffect, useMemo, useState } from 'react';
+
+type AICheckpoint = 'open' | 'noon' | 'twoPM' | 'close';
+
+type AIPrediction = {
+  checkpoint: AICheckpoint;
+  predicted_price: number;
+  confidence: number;
+  reasoning: string;
+  actual_price?: number | null;
+  prediction_error?: number | null;
+};
+
+type AIDayPreview = {
+  date: string;
+  market_context: string; // analysis text
+  pre_market_price?: number | null;
+  predictions: AIPrediction[];
+};
+
+type DayResponse = {
+  id: number;
+  date: string;
+  predLow: number | null;
+  predHigh: number | null;
+  source?: string | null;
+  locked?: boolean | null;
+  volCtx?: string | null;
+  notes?: string | null;
+};
+
+function formatDateCST(d: Date) {
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+}
 
 export function PredictScreen() {
-  const [isLoading, setIsLoading] = useState(false);
+  const today = useMemo(() => formatDateCST(new Date()), []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lockedDay, setLockedDay] = useState<DayResponse | null>(null);
+  const [aiPreview, setAiPreview] = useState<AIDayPreview | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [lookbackDays, setLookbackDays] = useState<number>(5);
 
-  const handleSubmit = async (data: PredictionFormData) => {
-    setIsLoading(true);
-    
-    try {
-      // Get current date in CST timezone
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'America/Chicago'
-      });
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // 1) Check if day is already created/locked
+        const dayResp = await fetch(`http://localhost:8000/day/${today}`);
+        if (dayResp.ok) {
+          const day: DayResponse = await dayResp.json();
+          setLockedDay(day);
+        } else {
+          setLockedDay(null);
+        }
 
-      // Call the backend API
-      const response = await fetch(`http://localhost:8000/prediction/${today}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // 2) Load AI preview for richer info (analysis + per-checkpoint)
+        const aiResp = await fetch(`http://localhost:8000/ai/predictions/${today}`);
+        if (aiResp.ok) {
+          const ai: AIDayPreview = await aiResp.json();
+          setAiPreview(ai);
+        } else {
+          setAiPreview(null);
+        }
+      } catch (e: any) {
+        setError(e?.message ?? 'Failed to load AI predictions');
+      } finally {
+        setLoading(false);
       }
+    };
+    load();
+  }, [today]);
 
-      const result = await response.json();
-      console.log('Prediction saved successfully:', result);
-    } catch (error) {
-      console.error('Error saving prediction:', error);
-      throw error; // Re-throw to let PredictionForm handle it
+  const createAndLock = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const resp = await fetch(`http://localhost:8000/ai/predict/${today}?lookbackDays=${lookbackDays}`, {
+        method: 'POST',
+      });
+      if (resp.status === 409) {
+        // already locked
+        const dayResp = await fetch(`http://localhost:8000/day/${today}`);
+        if (dayResp.ok) setLockedDay(await dayResp.json());
+        return;
+      }
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`Create failed (${resp.status}): ${txt}`);
+      }
+      // refresh day
+      const dayResp = await fetch(`http://localhost:8000/day/${today}`);
+      if (dayResp.ok) setLockedDay(await dayResp.json());
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to create & lock');
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
 
+  const locked = Boolean(lockedDay?.locked && lockedDay?.source === 'ai');
+
   return (
-    <PredictionForm 
-      onSubmit={handleSubmit} 
-      isLoading={isLoading}
-    />
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">AI Prediction</h2>
+          <p className="text-sm text-muted-foreground">{today} (CST)</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted-foreground">Lookback</label>
+          <select
+            className="border rounded px-2 py-1 text-sm bg-background"
+            value={lookbackDays}
+            onChange={(e) => setLookbackDays(Number(e.target.value))}
+            disabled={locked || submitting}
+          >
+            <option value={3}>3</option>
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+          </select>
+          {locked ? (
+            <span className="px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">Locked</span>
+          ) : (
+            <button
+              onClick={createAndLock}
+              disabled={submitting}
+              className="px-3 py-1 rounded bg-primary text-primary-foreground text-sm"
+            >
+              {submitting ? 'Creating…' : 'Create & Lock'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div className="text-red-400 text-sm">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="text-sm text-muted-foreground">Loading…</div>
+      ) : (
+        <>
+          {/* Analysis */}
+          <div className="rounded-lg border p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Analysis</h3>
+              {lockedDay?.predLow != null && lockedDay?.predHigh != null && (
+                <span className="text-xs text-muted-foreground">
+                  Band: {lockedDay.predLow.toFixed(2)} – {lockedDay.predHigh.toFixed(2)}
+                </span>
+              )}
+            </div>
+            <p className="text-sm whitespace-pre-wrap">
+              {aiPreview?.market_context || 'No analysis available.'}
+            </p>
+          </div>
+
+          {/* Per‑checkpoint table */}
+          <div className="rounded-lg border">
+            <div className="p-3 border-b font-medium">Predictions</div>
+            <div className="p-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-muted-foreground">
+                  <tr>
+                    <th className="py-1 pr-4">Checkpoint</th>
+                    <th className="py-1 pr-4">Price</th>
+                    <th className="py-1 pr-4">Confidence</th>
+                    <th className="py-1 pr-4">Reasoning</th>
+                    <th className="py-1">Actual</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(aiPreview?.predictions || []).map((p) => (
+                    <tr key={p.checkpoint} className="align-top">
+                      <td className="py-2 pr-4 font-medium capitalize">{p.checkpoint}</td>
+                      <td className="py-2 pr-4">${p.predicted_price.toFixed(2)}</td>
+                      <td className="py-2 pr-4">{Math.round(p.confidence * 100)}%</td>
+                      <td className="py-2 pr-4 max-w-[40ch] whitespace-pre-wrap">{p.reasoning}</td>
+                      <td className="py-2">{p.actual_price != null ? `$${p.actual_price.toFixed(2)}` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
