@@ -360,38 +360,91 @@ export function HistoryScreen() {
         delay: index * 0.1
       }} className="bg-[#12161D] rounded-xl border border-white/8 overflow-hidden">
             <button onClick={() => setExpandedCard(expandedCard === prediction.id ? null : prediction.id)} className="w-full p-4 text-left hover:bg-white/2 transition-colors">
+              {/* Header with enhanced status indicators */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-[#A7B3C5]" />
                   <span className="font-medium">{formatDate(prediction.date)}</span>
                   {getDayTypeBadge(prediction.dayType)}
+                  {prediction.source === 'ai' && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">AI</span>}
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {getBiasIcon(prediction.bias)}
-                  {prediction.rangeHit ? <CheckCircle className="w-5 h-5 text-[#16A34A]" /> : <XCircle className="w-5 h-5 text-[#DC2626]" />}
+                  {/* Checkpoint accuracy indicators */}
+                  {prediction.aiPredictions && (
+                    <div className="flex items-center gap-1">
+                      {getCheckpointAccuracy(prediction).slice(0, 4).map((checkpoint, idx) => (
+                        <div key={idx} 
+                             className={`w-2 h-2 rounded-full ${
+                               !checkpoint.hasActual ? 'bg-[#A7B3C5]/30' :
+                               checkpoint.isAccurate ? 'bg-[#16A34A]' : 'bg-[#DC2626]'
+                             }`}
+                             title={`${formatCheckpointName(checkpoint.checkpoint)}: ${checkpoint.error ? `±$${checkpoint.error?.toFixed(2)}` : 'Pending'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* Primary range hit indicator (larger) */}
+                  {prediction.rangeHit ? 
+                    <CheckCircle className="w-6 h-6 text-[#16A34A]" /> : 
+                    <XCircle className="w-6 h-6 text-[#DC2626]" />
+                  }
                 </div>
               </div>
 
+              {/* Enhanced range visualization */}
+              <div className="mb-4">
+                <div className="relative h-6 bg-white/5 rounded-lg overflow-hidden">
+                  {/* Predicted range bar */}
+                  <div 
+                    className="absolute top-0 h-3 bg-[#006072]/40 border border-[#006072]" 
+                    style={{
+                      left: '10%',
+                      width: '60%'
+                    }} 
+                  />
+                  {/* Actual range bar */}
+                  <div 
+                    className={`absolute bottom-0 h-3 border ${
+                      prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
+                    }`}
+                    style={{
+                      left: '15%',
+                      width: '55%'
+                    }} 
+                  />
+                </div>
+                {/* Range labels */}
+                <div className="flex justify-between text-xs text-[#A7B3C5] mt-1">
+                  <span>Pred: ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)}</span>
+                  <span>Actual: ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Summary metrics */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-[#A7B3C5] mb-1">Predicted</p>
-                    <p className="text-sm font-mono">
-                      ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)}
+                <div className="flex items-center gap-6">
+                  <div>
+                    <p className="text-xs text-[#A7B3C5] mb-1">Range Hit</p>
+                    <p className={`text-sm font-bold ${prediction.rangeHit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+                      {prediction.rangeHit ? 'HIT' : 'MISS'}
                     </p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-[#A7B3C5] mb-1">Actual</p>
+                  <div>
+                    <p className="text-xs text-[#A7B3C5] mb-1">Width Δ</p>
                     <p className="text-sm font-mono">
-                      ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)}
+                      {(() => {
+                        const sizing = calculateRangeSizing(prediction);
+                        return `${sizing.difference > 0 ? '+' : ''}${sizing.difference.toFixed(2)}`;
+                      })()}
                     </p>
                   </div>
                 </div>
                 
                 <div className="text-right">
                   <p className="text-xs text-[#A7B3C5] mb-1">Error</p>
-                  <p className={`text-sm font-mono font-bold ${prediction.error < 1 ? 'text-[#16A34A]' : prediction.error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'}`}>
+                  <p className={`text-lg font-mono font-bold ${prediction.error < 1 ? 'text-[#16A34A]' : prediction.error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'}`}>
                     ${prediction.error.toFixed(2)}
                   </p>
                 </div>
