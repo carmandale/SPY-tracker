@@ -265,7 +265,13 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
     
     for suggestion in suggestions:
         strategy_type = suggestion.get("strategy")
-        current_price = suggestion.get("expected_move", 635.0)  # Use EM as fallback current price
+        # Get actual current price from prediction data, use a reasonable fallback
+        pred = db.query(DailyPrediction).filter(DailyPrediction.date == day).first()
+        current_price = 635.0  # Default SPY price
+        if pred:
+            current_price = pred.close or pred.twoPM or pred.noon or pred.open or pred.preMarket
+            if current_price is None and pred.predHigh and pred.predLow:
+                current_price = (pred.predHigh + pred.predLow) / 2.0
         
         try:
             if strategy_type == "Iron Condor":
