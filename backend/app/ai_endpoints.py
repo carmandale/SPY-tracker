@@ -13,6 +13,7 @@ from .database import get_db
 from .models import AIPrediction, DailyPrediction
 from .ai_predictor import ai_predictor
 from .config import settings
+from .ai_prediction_service import AIPredictionService
 
 
 class AIPredictionResponse(BaseModel):
