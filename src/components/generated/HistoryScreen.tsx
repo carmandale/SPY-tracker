@@ -464,54 +464,134 @@ export function HistoryScreen() {
         }} transition={{
           duration: 0.2
         }} className="border-t border-white/8 p-4 bg-[#0B0D12]">
-                <div className="space-y-3">
-                  {/* Range Visualization */}
+                <div className="space-y-4">
+                  {/* AI Checkpoint Breakdown */}
+                  {prediction.aiPredictions && prediction.aiPredictions.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Activity className="w-4 h-4 text-[#006072]" />
+                        <p className="text-sm font-semibold text-[#E8ECF2]">Checkpoint Analysis</p>
+                      </div>
+                      <div className="space-y-2">
+                        {prediction.aiPredictions.map((ai, idx) => (
+                          <div key={idx} className="bg-white/5 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{getCheckpointIcon(ai.checkpoint)}</span>
+                                <span className="font-medium text-sm">{formatCheckpointName(ai.checkpoint)}</span>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  !ai.actual_price ? 'bg-[#A7B3C5]/30' :
+                                  (ai.prediction_error && ai.prediction_error < 2.0) ? 'bg-[#16A34A]' : 'bg-[#DC2626]'
+                                }`} />
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-[#A7B3C5]">
+                                  Confidence: {(ai.confidence * 100).toFixed(0)}%
+                                </span>
+                                {ai.prediction_error && (
+                                  <span className={`text-sm font-mono font-bold ${
+                                    ai.prediction_error < 1 ? 'text-[#16A34A]' : 
+                                    ai.prediction_error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'
+                                  }`}>
+                                    ±${ai.prediction_error.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                              <div>
+                                <span className="text-[#A7B3C5]">Predicted:</span>
+                                <span className="ml-2 font-mono">${ai.predicted_price.toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[#A7B3C5]">Actual:</span>
+                                <span className="ml-2 font-mono">
+                                  {ai.actual_price ? `$${ai.actual_price.toFixed(2)}` : 'Pending'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {ai.reasoning && (
+                              <div className="mt-2 pt-2 border-t border-white/10">
+                                <p className="text-xs text-[#A7B3C5] italic">{ai.reasoning}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Enhanced Range Analysis */}
                   <div>
-                    <p className="text-xs text-[#A7B3C5] mb-2">Range Comparison</p>
-                    <div className="relative h-8 bg-white/5 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-4 h-4 text-[#006072]" />
+                      <p className="text-sm font-semibold text-[#E8ECF2]">Range Performance</p>
+                    </div>
+                    
+                    <div className="relative h-12 bg-white/5 rounded-lg overflow-hidden mb-3">
                       {/* Predicted Range */}
-                      <div className="absolute top-0 h-4 bg-[#006072]/30 border border-[#006072]" style={{
-                  left: '10%',
-                  width: '60%'
-                }} />
+                      <div className="absolute top-1 h-4 bg-[#006072]/40 border border-[#006072] flex items-center justify-center" style={{
+                        left: '10%',
+                        width: '60%'
+                      }}>
+                        <span className="text-xs text-white font-bold">PRED</span>
+                      </div>
                       {/* Actual Range */}
-                      <div className="absolute bottom-0 h-4 bg-[#E8ECF2]/30 border border-[#E8ECF2]" style={{
-                  left: '15%',
-                  width: '55%'
-                }} />
+                      <div className={`absolute bottom-1 h-4 border flex items-center justify-center ${
+                        prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
+                      }`} style={{
+                        left: '15%',
+                        width: '55%'
+                      }}>
+                        <span className="text-xs text-white font-bold">ACT</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs text-[#A7B3C5] mt-1">
-                      <span>Predicted</span>
-                      <span>Actual</span>
+
+                    {/* Range metrics grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Predicted Width</p>
+                        <p className="text-sm font-mono font-bold">
+                          ${(prediction.high - prediction.low).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Actual Width</p>
+                        <p className="text-sm font-mono font-bold">
+                          ${(prediction.actualHigh - prediction.actualLow).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Width Difference</p>
+                        <p className={`text-sm font-mono font-bold ${
+                          calculateRangeSizing(prediction).difference > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'
+                        }`}>
+                          {(() => {
+                            const diff = calculateRangeSizing(prediction).difference;
+                            return `${diff > 0 ? '+' : ''}${diff.toFixed(2)}`;
+                          })()}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Hit Status</p>
+                        <p className={`text-sm font-bold ${prediction.rangeHit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+                          {prediction.rangeHit ? '✓ HIT' : '✗ MISS'}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Notes */}
+                  {/* Analysis Notes */}
                   <div>
-                    <p className="text-xs text-[#A7B3C5] mb-1">Analysis Notes</p>
-                    <p className="text-sm text-[#E8ECF2] bg-white/5 rounded-lg p-3">
-                      {prediction.notes}
-                    </p>
-                  </div>
-
-                  {/* Performance Metrics */}
-                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-white/8">
-                    <div className="text-center">
-                      <p className="text-xs text-[#A7B3C5] mb-1">Range Width</p>
-                      <p className="text-sm font-mono">
-                        ${(prediction.high - prediction.low).toFixed(2)}
-                      </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4 text-[#006072]" />
+                      <p className="text-sm font-semibold text-[#E8ECF2]">Trading Notes</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-[#A7B3C5] mb-1">Actual Width</p>
-                      <p className="text-sm font-mono">
-                        ${(prediction.actualHigh - prediction.actualLow).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-[#A7B3C5] mb-1">Hit Rate</p>
-                      <p className={`text-sm font-mono font-bold ${prediction.rangeHit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
-                        {prediction.rangeHit ? '100%' : '0%'}
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <p className="text-sm text-[#E8ECF2]">
+                        {prediction.notes || 'No trading notes available for this prediction.'}
                       </p>
                     </div>
                   </div>
