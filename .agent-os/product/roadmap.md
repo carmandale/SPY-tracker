@@ -73,7 +73,7 @@ The following features have been implemented:
 - Option Greeks calculations
 - Volatility data integration (stub values for MVP)
 
-## Phase 3: Performance & Calibration
+## Phase 3: Performance & Calibration (Completed)
 
 **Goal:** Track accuracy and provide calibration feedback
 **Success Criteria:** Display rolling metrics and improvement tips
@@ -81,15 +81,15 @@ The following features have been implemented:
 
 ### Must-Have Features
 
-- [ ] History page implementation - List past predictions with outcomes `M`
-- [ ] Metrics calculation - 20-day rolling RangeHit% and MAE `M`
-- [ ] Calibration tips engine - Data-driven improvement suggestions `M`
-- [ ] Metrics dashboard - Visual performance indicators `M`
+- [x] History page implementation - List past predictions with outcomes `M`
+- [x] Metrics calculation - 20-day rolling RangeHit% and MAE `M`
+- [x] Calibration tips engine - Data-driven improvement suggestions `M`
+- [x] Metrics dashboard - Visual performance indicators `M`
 
 ### Should-Have Features
 
 - [ ] Realized low/high capture - EOD data from provider `M`
-- [ ] Accuracy trend analysis - Improving/worsening indicators `S`
+- [x] Accuracy trend analysis - Improving/worsening indicators `S`
 - [ ] Export functionality - CSV download of history `S`
 
 ### Dependencies
