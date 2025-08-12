@@ -317,6 +317,22 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
                 current_price=current_price
             )
             
+            # Add strike prices for chart markers
+            strikes = {}
+            if strategy_type == "Iron Condor":
+                strikes = {
+                    "put_long_strike": suggestion.get("put_long_strike"),
+                    "put_short_strike": suggestion.get("put_short_strike"),
+                    "call_short_strike": suggestion.get("call_short_strike"),
+                    "call_long_strike": suggestion.get("call_long_strike")
+                }
+            elif strategy_type == "Iron Butterfly":
+                strikes = {
+                    "put_long_strike": suggestion.get("put_long_strike"),
+                    "center_strike": suggestion.get("center_strike"),
+                    "call_long_strike": suggestion.get("call_long_strike")
+                }
+            
             # Convert to serializable format
             pl_data_dict = {
                 "tenor": suggestion.get("tenor"),
@@ -337,7 +353,8 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
                 "current_price": pl_data.current_price,
                 "profit_zone_start": pl_data.profit_zone_start,
                 "profit_zone_end": pl_data.profit_zone_end,
-                "current_pl": current_pl
+                "current_pl": current_pl,
+                "strikes": strikes  # Add strike prices for chart markers
             }
             
             pl_data_list.append(pl_data_dict)
