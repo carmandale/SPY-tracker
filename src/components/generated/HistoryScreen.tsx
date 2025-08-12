@@ -198,7 +198,11 @@ export function HistoryScreen() {
       </span>;
   };
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse as local date to avoid timezone issues
+    // "2025-08-11" should be Aug 11, not shifted to Aug 10
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    return localDate.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
