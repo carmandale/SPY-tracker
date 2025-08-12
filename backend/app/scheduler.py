@@ -48,11 +48,11 @@ def capture_price(db: Session, checkpoint: str) -> None:
 def start_scheduler(get_db_session_callable):
     scheduler = BackgroundScheduler(timezone=ZoneInfo(settings.timezone))
 
-    # Schedule AI prediction generation + lock for the day at 08:30 CST
+    # Schedule AI prediction generation + lock for the day at 08:00 CST (fresh daily)
     scheduler.add_job(
         lambda: _run_ai_prediction(get_db_session_callable),
         CronTrigger.from_crontab(AI_PREDICTION_CRON, timezone=ZoneInfo(settings.timezone)),
-        id="ai_predict_0830",
+        id="ai_predict_0800",
         replace_existing=True,
         max_instances=1,
     )
