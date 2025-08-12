@@ -35,10 +35,89 @@ interface PLChartProps {
 
 export function PLChart({ 
   data, 
-  height = 120, 
+  height, 
   showBreakevens = true, 
-  showCurrentPrice = true 
+  showCurrentPrice = true,
+  variant = 'standard'
 }: PLChartProps) {
+  // Dynamic height based on variant and mobile responsiveness
+  const chartHeight = useMemo(() => {
+    if (height) return height;
+    
+    const sizes = {
+      mini: 200,      // Much larger than before (was 80px)
+      standard: 320,  // Professional size (was 120px)  
+      expanded: 420   // Full analysis view
+    };
+    
+    const baseHeight = sizes[variant];
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    return isMobile ? baseHeight : Math.min(baseHeight * 1.1, 500);
+  }, [height, variant]);
+
+  // Calculate current P&L if not provided
+  const currentPL = useMemo(() => {
+    if (data.current_pl !== undefined) return data.current_pl;
+    
+    const currentPoint = data.points.find(p => 
+      Math.abs(p.underlying_price - data.current_price) < 0.5
+    );
+    return currentPoint?.total_pl || 0;
+  }, [data]);
+
+  // Determine tenor urgency and styling
+  const tenorTheme = useMemo(() => {
+    const hoursRemaining = data.time_to_expiry || 24;
+    
+    switch (data.tenor) {
+      case '0DTE':
+        return {
+          urgency: 'high' as const,
+          borderColor: '#DC2626',
+          glowColor: hoursRemaining < 4 ? '#DC2626' : undefined,
+          warningText: hoursRemaining < 2 ? 'EXPIRING SOON!' : undefined
+        };
+      case '1W':
+        return {
+          urgency: 'medium' as const,
+          borderColor: '#F59E0B',
+          glowColor: undefined,
+          warningText: undefined
+        };
+      case '1M':
+        return {
+          urgency: 'low' as const,
+          borderColor: '#10B981', 
+          glowColor: undefined,
+          warningText: undefined
+        };
+      default:
+        return {
+          urgency: 'medium' as const,
+          borderColor: '#64748B',
+          glowColor: undefined,
+          warningText: undefined
+        };
+    }
+  }, [data.tenor, data.time_to_expiry]);
+
+  // Enhanced profit/loss status
+  const plStatus = useMemo(() => {
+    const isWinning = currentPL > 0;
+    const withinProfitZone = data.current_price >= data.profit_zone_start && 
+                            data.current_price <= data.profit_zone_end;
+    
+    return {
+      isWinning,
+      withinProfitZone,
+      statusColor: isWinning ? '#00D4AA' : '#FF6B6B',
+      statusText: isWinning ? 'WINNING' : 'LOSING',
+      statusIcon: isWinning ? TrendingUp : TrendingDown,
+      urgencyLevel: Math.abs(currentPL / (data.max_profit || 1))
+    };
+  }, [currentPL, data]);
+
+  const StatusIcon = plStatus.statusIcon;
   const chartData = useMemo(() => {
     return data.points.map(point => ({
       price: point.underlying_price,
