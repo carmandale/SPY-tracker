@@ -47,8 +47,8 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
     4. Calculate accuracy metrics
     """
     
-    # Check if we already have predictions for this date
-    existing_predictions = db.query(AIPrediction).filter(AIPrediction.date == target_date).all()
+    # Get unique predictions for this date (handles duplicates correctly)
+    existing_predictions = AIPredictionService.get_unique_predictions_for_date(db, target_date)
     
     ai_preview = None
     if not existing_predictions:
