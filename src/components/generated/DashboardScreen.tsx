@@ -271,12 +271,12 @@ export function DashboardScreen() {
         <div className="flex items-center gap-4 mb-3">
           <div className="text-center">
             <p className="text-xs text-[#A7B3C5] mb-1">Low</p>
-            <p className="text-xl font-mono font-bold text-[#DC2626]">${prediction.low}</p>
+            <p className="text-xl font-mono font-bold text-[#DC2626]">${prediction.low.toFixed(2)}</p>
           </div>
           <div className="flex-1 h-px bg-gradient-to-r from-[#DC2626] via-[#A7B3C5] to-[#16A34A]"></div>
           <div className="text-center">
             <p className="text-xs text-[#A7B3C5] mb-1">High</p>
-            <p className="text-xl font-mono font-bold text-[#16A34A]">${prediction.high}</p>
+            <p className="text-xl font-mono font-bold text-[#16A34A]">${prediction.high.toFixed(2)}</p>
           </div>
         </div>
         
@@ -318,7 +318,7 @@ export function DashboardScreen() {
                 <span className="text-xs font-mono text-[#A7B3C5]">{item.time}</span>
               </div>
               <p className="text-lg font-mono font-bold">
-                {item.price ? `$${item.price}` : '---'}
+                {item.price != null ? `$${item.price.toFixed(2)}` : '---'}
               </p>
             </motion.button>)}
         </div>
