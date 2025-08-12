@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingUp, TrendingDown, Clock, AlertTriangle, Target } from 'lucide-react';
 
 interface PLPoint {
@@ -131,6 +131,9 @@ export function PLChart({
     return data.points.map(point => ({
       price: point.underlying_price,
       pl: point.total_pl,
+      // Split into positive and negative for gradient fills
+      plPositive: point.total_pl > 0 ? point.total_pl : 0,
+      plNegative: point.total_pl < 0 ? point.total_pl : 0,
       formatted_price: point.underlying_price.toFixed(0),
       formatted_pl: point.total_pl >= 0 ? `+$${point.total_pl.toFixed(2)}` : `-$${Math.abs(point.total_pl).toFixed(2)}`
     }));
@@ -264,7 +267,18 @@ export function PLChart({
       )}
       
       <ResponsiveContainer width="100%" height={chartHeight}>
-        <LineChart data={chartData} margin={{ top: 20, right: 20, left: 8, bottom: 40 }}>
+        <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 8, bottom: 40 }}>
+          {/* Gradient definitions for fill areas */}
+          <defs>
+            <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#00D4AA" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#00D4AA" stopOpacity={0.05}/>
+            </linearGradient>
+            <linearGradient id="lossGradient" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="5%" stopColor="#DC2626" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#DC2626" stopOpacity={0.05}/>
+            </linearGradient>
+          </defs>
           <XAxis 
             dataKey="price"
             axisLine={false}
@@ -375,12 +389,31 @@ export function PLChart({
             />
           )}
           
-          {/* Enhanced P&L curve */}
-          <Line
+          {/* Loss area fill */}
+          <Area
+            type="monotone"
+            dataKey="plNegative"
+            stroke="none"
+            fill="url(#lossGradient)"
+            strokeWidth={0}
+          />
+          
+          {/* Profit area fill */}
+          <Area
+            type="monotone"
+            dataKey="plPositive"
+            stroke="none"
+            fill="url(#profitGradient)"
+            strokeWidth={0}
+          />
+          
+          {/* P&L curve line */}
+          <Area
             type="monotone"
             dataKey="pl"
             stroke={plStatus.isWinning ? '#00D4AA' : '#FF6B6B'}
             strokeWidth={variant === 'mini' ? 2 : 3}
+            fill="none"
             dot={false}
             activeDot={{ 
               r: variant === 'mini' ? 4 : 6, 
@@ -394,7 +427,7 @@ export function PLChart({
           />
           
           <Tooltip content={<CustomTooltip />} />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
       
       {/* Enhanced Chart Annotations - Simplified to reduce overlap */}
