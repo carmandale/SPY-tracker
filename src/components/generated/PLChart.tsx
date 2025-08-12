@@ -277,20 +277,20 @@ export function PLChart({
             dataKey="price"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 10, fill: '#A7B3C5' }}
+            tick={{ fontSize: 8, fill: '#A7B3C5' }}
             domain={[minPrice, maxPrice]}
             type="number"
             scale="linear"
-            tickFormatter={(value) => `$${value.toFixed(0)}`}
+            tickFormatter={(value) => `${value.toFixed(0)}`}
             interval="preserveStartEnd"
           />
           <YAxis 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 10, fill: '#A7B3C5' }}
+            tick={{ fontSize: 8, fill: '#A7B3C5' }}
             domain={[minPL * 1.1, maxPL * 1.1]}
-            tickFormatter={(value) => value >= 0 ? `+$${value.toFixed(0)}` : `-$${Math.abs(value).toFixed(0)}`}
-            width={40}
+            tickFormatter={(value) => value >= 0 ? `+${value.toFixed(0)}` : `${value.toFixed(0)}`}
+            width={30}
           />
           
           {/* Zero line */}
