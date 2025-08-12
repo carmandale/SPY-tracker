@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus, Calendar, Target, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Calendar, Target, CheckCircle, XCircle, Filter, Activity, Clock } from 'lucide-react';
+
+interface CheckpointData {
+  checkpoint: string;
+  predicted_price: number;
+  actual_price: number | null;
+  confidence: number;
+  reasoning: string;
+  prediction_error: number | null;
+}
+
 interface HistoricalPrediction {
   id: string;
   date: string;
@@ -13,6 +23,14 @@ interface HistoricalPrediction {
   notes: string;
   dayType: 'opex' | 'fomc' | 'earnings' | 'normal';
   error: number;
+  source?: 'ai' | 'manual' | 'ai_simulation';
+  // Checkpoint prices from DailyPrediction
+  open?: number;
+  noon?: number;
+  twoPM?: number;
+  close?: number;
+  // AI Prediction data for detailed breakdown
+  aiPredictions?: CheckpointData[];
 }
 type FilterType = 'all' | 'hits' | 'misses' | 'week' | 'month';
 export function HistoryScreen() {
@@ -31,19 +49,52 @@ export function HistoryScreen() {
         }
         const data = await resp.json();
         
-        const items: HistoricalPrediction[] = data.items.map((item: any) => ({
-          id: String(item.id),
-          date: item.date,
-          low: item.predLow ?? 0,
-          high: item.predHigh ?? 0,
-          bias: (item.bias || 'neutral') as any,
-          actualLow: item.actualLow ?? 0,
-          actualHigh: item.actualHigh ?? 0,
-          rangeHit: !!item.rangeHit,
-          notes: item.notes || `${item.source === 'ai' ? '🤖 AI' : '📝 Manual'} prediction`,
-          dayType: (item.dayType || 'normal') as any,
-          error: item.error ?? 0,
-        }));
+        // Process items and fetch AI prediction data
+        const items: HistoricalPrediction[] = await Promise.all(
+          data.items.map(async (item: any) => {
+            let aiPredictions: CheckpointData[] = [];
+            
+            // Fetch AI predictions for this date if source is AI
+            if (item.source === 'ai' || item.source === 'ai_simulation') {
+              try {
+                const aiResp = await fetch(`http://localhost:8000/ai/predictions/${item.date}`);
+                if (aiResp.ok) {
+                  const aiData = await aiResp.json();
+                  aiPredictions = aiData.predictions.map((pred: any) => ({
+                    checkpoint: pred.checkpoint,
+                    predicted_price: pred.predicted_price,
+                    actual_price: pred.actual_price,
+                    confidence: pred.confidence,
+                    reasoning: pred.reasoning,
+                    prediction_error: pred.prediction_error
+                  }));
+                }
+              } catch (e) {
+                console.warn('Failed to fetch AI predictions for', item.date);
+              }
+            }
+            
+            return {
+              id: String(item.id),
+              date: item.date,
+              low: item.predLow ?? 0,
+              high: item.predHigh ?? 0,
+              bias: (item.bias || 'neutral') as any,
+              actualLow: item.actualLow ?? 0,
+              actualHigh: item.actualHigh ?? 0,
+              rangeHit: !!item.rangeHit,
+              notes: item.notes || `${item.source === 'ai' ? '🤖 AI prediction' : item.source === 'ai_simulation' ? '🔬 AI simulation' : '📝 Manual prediction'}`,
+              dayType: (item.dayType || 'normal') as any,
+              error: item.error ?? 0,
+              source: item.source,
+              open: item.open,
+              noon: item.noon,
+              twoPM: item.twoPM,
+              close: item.close,
+              aiPredictions
+            };
+          })
+        );
         
         setHistoricalData(items);
       } catch (e) {
@@ -216,6 +267,53 @@ export function HistoryScreen() {
     const totalError = filteredData.reduce((sum, d) => sum + d.error, 0);
     return (totalError / filteredData.length).toFixed(2);
   };
+
+  // Trading visualization helpers
+  const getCheckpointAccuracy = (prediction: HistoricalPrediction) => {
+    if (!prediction.aiPredictions?.length) return [];
+    
+    return prediction.aiPredictions.map(ai => ({
+      checkpoint: ai.checkpoint,
+      isAccurate: ai.prediction_error !== null && ai.prediction_error < 2.0, // Within $2
+      error: ai.prediction_error,
+      confidence: ai.confidence,
+      hasActual: ai.actual_price !== null
+    }));
+  };
+
+  const getCheckpointIcon = (checkpoint: string) => {
+    const iconMap: { [key: string]: string } = {
+      'open': '🔔',
+      'noon': '🕛', 
+      'twoPM': '🕐',
+      'close': '🔚'
+    };
+    return iconMap[checkpoint] || '⏱️';
+  };
+
+  const formatCheckpointName = (checkpoint: string) => {
+    const nameMap: { [key: string]: string } = {
+      'open': 'Open',
+      'noon': 'Noon',
+      'twoPM': '2PM',
+      'close': 'Close'
+    };
+    return nameMap[checkpoint] || checkpoint;
+  };
+
+  const calculateRangeSizing = (prediction: HistoricalPrediction) => {
+    const predictedWidth = prediction.high - prediction.low;
+    const actualWidth = prediction.actualHigh - prediction.actualLow;
+    const difference = actualWidth - predictedWidth;
+    
+    return {
+      predictedWidth,
+      actualWidth,
+      difference,
+      isWider: difference > 0,
+      percentDiff: predictedWidth > 0 ? (difference / predictedWidth) * 100 : 0
+    };
+  };
   return <div className="p-4 space-y-6">
       {/* Header */}
       <div className="text-center">
@@ -262,38 +360,140 @@ export function HistoryScreen() {
         delay: index * 0.1
       }} className="bg-[#12161D] rounded-xl border border-white/8 overflow-hidden">
             <button onClick={() => setExpandedCard(expandedCard === prediction.id ? null : prediction.id)} className="w-full p-4 text-left hover:bg-white/2 transition-colors">
+              {/* Header with enhanced status indicators */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-[#A7B3C5]" />
                   <span className="font-medium">{formatDate(prediction.date)}</span>
                   {getDayTypeBadge(prediction.dayType)}
+                  {prediction.source === 'ai' && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">AI</span>}
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {getBiasIcon(prediction.bias)}
-                  {prediction.rangeHit ? <CheckCircle className="w-5 h-5 text-[#16A34A]" /> : <XCircle className="w-5 h-5 text-[#DC2626]" />}
+                  {/* Checkpoint accuracy indicators */}
+                  {prediction.aiPredictions && (
+                    <div className="flex items-center gap-1">
+                      {getCheckpointAccuracy(prediction).slice(0, 4).map((checkpoint, idx) => (
+                        <div key={idx} 
+                             className={`w-2 h-2 rounded-full ${
+                               !checkpoint.hasActual ? 'bg-[#A7B3C5]/30' :
+                               checkpoint.isAccurate ? 'bg-[#16A34A]' : 'bg-[#DC2626]'
+                             }`}
+                             title={`${formatCheckpointName(checkpoint.checkpoint)}: ${checkpoint.error ? `±$${checkpoint.error?.toFixed(2)}` : 'Pending'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* Primary range hit indicator (larger) */}
+                  {prediction.rangeHit ? 
+                    <CheckCircle className="w-6 h-6 text-[#16A34A]" /> : 
+                    <XCircle className="w-6 h-6 text-[#DC2626]" />
+                  }
                 </div>
               </div>
 
+              {/* Enhanced range visualization with proper scaling */}
+              <div className="mb-4">
+                {(() => {
+                  // Only show visualization if we have actual range data
+                  if (!prediction.actualLow || !prediction.actualHigh) {
+                    return (
+                      <div className="text-center py-2 text-[#A7B3C5] text-xs">
+                        Day incomplete - no range comparison available
+                      </div>
+                    );
+                  }
+
+                  // Calculate price range for scaling
+                  const allPrices = [prediction.low, prediction.high, prediction.actualLow, prediction.actualHigh];
+                  const minPrice = Math.min(...allPrices);
+                  const maxPrice = Math.max(...allPrices);
+                  const totalRange = maxPrice - minPrice;
+                  
+                  // Add 5% padding on each side
+                  const padding = totalRange * 0.05;
+                  const chartMin = minPrice - padding;
+                  const chartMax = maxPrice + padding;
+                  const chartRange = chartMax - chartMin;
+                  
+                  // Calculate positions and widths as percentages
+                  const predLeft = ((prediction.low - chartMin) / chartRange) * 100;
+                  const predWidth = ((prediction.high - prediction.low) / chartRange) * 100;
+                  const actualLeft = ((prediction.actualLow - chartMin) / chartRange) * 100;
+                  const actualWidth = ((prediction.actualHigh - prediction.actualLow) / chartRange) * 100;
+                  
+                  return (
+                    <>
+                      <div className="relative h-8 bg-white/5 rounded-lg overflow-hidden">
+                        {/* Price scale markers */}
+                        <div className="absolute inset-x-0 top-0 h-full flex items-center justify-between px-1 text-[10px] text-[#A7B3C5]/60">
+                          <span>${chartMin.toFixed(1)}</span>
+                          <span>${chartMax.toFixed(1)}</span>
+                        </div>
+                        
+                        {/* Predicted range bar */}
+                        <div 
+                          className="absolute top-1 h-3 bg-[#006072]/40 border border-[#006072] rounded-sm" 
+                          style={{
+                            left: `${predLeft}%`,
+                            width: `${Math.max(predWidth, 1)}%`
+                          }} 
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[8px] text-white font-bold">PRED</span>
+                          </div>
+                        </div>
+                        
+                        {/* Actual range bar */}
+                        <div 
+                          className={`absolute bottom-1 h-3 border rounded-sm ${
+                            prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
+                          }`}
+                          style={{
+                            left: `${actualLeft}%`,
+                            width: `${Math.max(actualWidth, 1)}%`
+                          }} 
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[8px] text-white font-bold">ACT</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Range labels with precise values */}
+                      <div className="flex justify-between text-xs text-[#A7B3C5] mt-1">
+                        <span>Pred: ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)} (${(prediction.high - prediction.low).toFixed(2)})</span>
+                        <span>Actual: ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)} (${(prediction.actualHigh - prediction.actualLow).toFixed(2)})</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Summary metrics */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-[#A7B3C5] mb-1">Predicted</p>
-                    <p className="text-sm font-mono">
-                      ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)}
+                <div className="flex items-center gap-6">
+                  <div>
+                    <p className="text-xs text-[#A7B3C5] mb-1">Range Hit</p>
+                    <p className={`text-sm font-bold ${prediction.rangeHit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+                      {prediction.rangeHit ? 'HIT' : 'MISS'}
                     </p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-[#A7B3C5] mb-1">Actual</p>
+                  <div>
+                    <p className="text-xs text-[#A7B3C5] mb-1">Width Δ</p>
                     <p className="text-sm font-mono">
-                      ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)}
+                      {(() => {
+                        const sizing = calculateRangeSizing(prediction);
+                        return `${sizing.difference > 0 ? '+' : ''}${sizing.difference.toFixed(2)}`;
+                      })()}
                     </p>
                   </div>
                 </div>
                 
                 <div className="text-right">
                   <p className="text-xs text-[#A7B3C5] mb-1">Error</p>
-                  <p className={`text-sm font-mono font-bold ${prediction.error < 1 ? 'text-[#16A34A]' : prediction.error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'}`}>
+                  <p className={`text-lg font-mono font-bold ${prediction.error < 1 ? 'text-[#16A34A]' : prediction.error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'}`}>
                     ${prediction.error.toFixed(2)}
                   </p>
                 </div>
@@ -313,54 +513,175 @@ export function HistoryScreen() {
         }} transition={{
           duration: 0.2
         }} className="border-t border-white/8 p-4 bg-[#0B0D12]">
-                <div className="space-y-3">
-                  {/* Range Visualization */}
-                  <div>
-                    <p className="text-xs text-[#A7B3C5] mb-2">Range Comparison</p>
-                    <div className="relative h-8 bg-white/5 rounded-lg overflow-hidden">
-                      {/* Predicted Range */}
-                      <div className="absolute top-0 h-4 bg-[#006072]/30 border border-[#006072]" style={{
-                  left: '10%',
-                  width: '60%'
-                }} />
-                      {/* Actual Range */}
-                      <div className="absolute bottom-0 h-4 bg-[#E8ECF2]/30 border border-[#E8ECF2]" style={{
-                  left: '15%',
-                  width: '55%'
-                }} />
+                <div className="space-y-4">
+                  {/* AI Checkpoint Breakdown */}
+                  {prediction.aiPredictions && prediction.aiPredictions.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Activity className="w-4 h-4 text-[#006072]" />
+                        <p className="text-sm font-semibold text-[#E8ECF2]">Checkpoint Analysis</p>
+                      </div>
+                      <div className="space-y-2">
+                        {prediction.aiPredictions.map((ai, idx) => (
+                          <div key={idx} className="bg-white/5 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{getCheckpointIcon(ai.checkpoint)}</span>
+                                <span className="font-medium text-sm">{formatCheckpointName(ai.checkpoint)}</span>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  !ai.actual_price ? 'bg-[#A7B3C5]/30' :
+                                  (ai.prediction_error && ai.prediction_error < 2.0) ? 'bg-[#16A34A]' : 'bg-[#DC2626]'
+                                }`} />
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-[#A7B3C5]">
+                                  Confidence: {(ai.confidence * 100).toFixed(0)}%
+                                </span>
+                                {ai.prediction_error && (
+                                  <span className={`text-sm font-mono font-bold ${
+                                    ai.prediction_error < 1 ? 'text-[#16A34A]' : 
+                                    ai.prediction_error < 2 ? 'text-[#E8ECF2]' : 'text-[#DC2626]'
+                                  }`}>
+                                    ±${ai.prediction_error.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                              <div>
+                                <span className="text-[#A7B3C5]">Predicted:</span>
+                                <span className="ml-2 font-mono">${ai.predicted_price.toFixed(2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[#A7B3C5]">Actual:</span>
+                                <span className="ml-2 font-mono">
+                                  {ai.actual_price ? `$${ai.actual_price.toFixed(2)}` : 'Pending'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {ai.reasoning && (
+                              <div className="mt-2 pt-2 border-t border-white/10">
+                                <p className="text-xs text-[#A7B3C5] italic">{ai.reasoning}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs text-[#A7B3C5] mt-1">
-                      <span>Predicted</span>
-                      <span>Actual</span>
+                  )}
+
+                  {/* Enhanced Range Analysis */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-4 h-4 text-[#006072]" />
+                      <p className="text-sm font-semibold text-[#E8ECF2]">Range Performance</p>
+                    </div>
+                    
+{(() => {
+                      // Same scaling logic as compact view
+                      if (!prediction.actualLow || !prediction.actualHigh) {
+                        return (
+                          <div className="text-center py-3 text-[#A7B3C5] text-sm">
+                            Day incomplete - no range analysis available
+                          </div>
+                        );
+                      }
+
+                      const allPrices = [prediction.low, prediction.high, prediction.actualLow, prediction.actualHigh];
+                      const minPrice = Math.min(...allPrices);
+                      const maxPrice = Math.max(...allPrices);
+                      const totalRange = maxPrice - minPrice;
+                      const padding = totalRange * 0.05;
+                      const chartMin = minPrice - padding;
+                      const chartMax = maxPrice + padding;
+                      const chartRange = chartMax - chartMin;
+                      
+                      const predLeft = ((prediction.low - chartMin) / chartRange) * 100;
+                      const predWidth = ((prediction.high - prediction.low) / chartRange) * 100;
+                      const actualLeft = ((prediction.actualLow - chartMin) / chartRange) * 100;
+                      const actualWidth = ((prediction.actualHigh - prediction.actualLow) / chartRange) * 100;
+                      
+                      return (
+                        <div className="relative h-12 bg-white/5 rounded-lg overflow-hidden mb-3">
+                          {/* Price scale with more detail */}
+                          <div className="absolute inset-x-0 top-0 h-full flex items-center justify-between px-2 text-xs text-[#A7B3C5]/60">
+                            <span>${chartMin.toFixed(2)}</span>
+                            <span className="text-[10px]">{((chartMax + chartMin) / 2).toFixed(2)}</span>
+                            <span>${chartMax.toFixed(2)}</span>
+                          </div>
+                          
+                          {/* Predicted Range */}
+                          <div 
+                            className="absolute top-1 h-4 bg-[#006072]/40 border border-[#006072] flex items-center justify-center rounded-sm"
+                            style={{
+                              left: `${predLeft}%`,
+                              width: `${Math.max(predWidth, 2)}%`
+                            }}
+                          >
+                            <span className="text-xs text-white font-bold">PRED</span>
+                          </div>
+                          
+                          {/* Actual Range */}
+                          <div 
+                            className={`absolute bottom-1 h-4 border flex items-center justify-center rounded-sm ${
+                              prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
+                            }`}
+                            style={{
+                              left: `${actualLeft}%`,
+                              width: `${Math.max(actualWidth, 2)}%`
+                            }}
+                          >
+                            <span className="text-xs text-white font-bold">ACT</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Range metrics grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Predicted Width</p>
+                        <p className="text-sm font-mono font-bold">
+                          ${(prediction.high - prediction.low).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Actual Width</p>
+                        <p className="text-sm font-mono font-bold">
+                          ${(prediction.actualHigh - prediction.actualLow).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Width Difference</p>
+                        <p className={`text-sm font-mono font-bold ${
+                          calculateRangeSizing(prediction).difference > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'
+                        }`}>
+                          {(() => {
+                            const diff = calculateRangeSizing(prediction).difference;
+                            return `${diff > 0 ? '+' : ''}${diff.toFixed(2)}`;
+                          })()}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-[#A7B3C5] mb-1">Hit Status</p>
+                        <p className={`text-sm font-bold ${prediction.rangeHit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+                          {prediction.rangeHit ? '✓ HIT' : '✗ MISS'}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Notes */}
+                  {/* Analysis Notes */}
                   <div>
-                    <p className="text-xs text-[#A7B3C5] mb-1">Analysis Notes</p>
-                    <p className="text-sm text-[#E8ECF2] bg-white/5 rounded-lg p-3">
-                      {prediction.notes}
-                    </p>
-                  </div>
-
-                  {/* Performance Metrics */}
-                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-white/8">
-                    <div className="text-center">
-                      <p className="text-xs text-[#A7B3C5] mb-1">Range Width</p>
-                      <p className="text-sm font-mono">
-                        ${(prediction.high - prediction.low).toFixed(2)}
-                      </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4 text-[#006072]" />
+                      <p className="text-sm font-semibold text-[#E8ECF2]">Trading Notes</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-[#A7B3C5] mb-1">Actual Width</p>
-                      <p className="text-sm font-mono">
-                        ${(prediction.actualHigh - prediction.actualLow).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-[#A7B3C5] mb-1">Hit Rate</p>
-                      <p className={`text-sm font-mono font-bold ${prediction.rangeHit ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
-                        {prediction.rangeHit ? '100%' : '0%'}
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <p className="text-sm text-[#E8ECF2]">
+                        {prediction.notes || 'No trading notes available for this prediction.'}
                       </p>
                     </div>
                   </div>

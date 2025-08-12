@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Activity, DollarSign, Target, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, DollarSign, Target, AlertCircle, BarChart3, Eye, EyeOff } from 'lucide-react';
+import { PLChartStandard, PLChartMini } from './PLChart';
 
 interface Strike {
   put_long: number;
@@ -36,7 +37,9 @@ interface SuggestionCardsProps {
 
 export function SuggestionCards({ date }: SuggestionCardsProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [plData, setPLData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -59,6 +62,30 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
 
     fetchSuggestions();
   }, [date]);
+
+  // Fetch P&L data when charts are shown
+  useEffect(() => {
+    if (!showCharts || suggestions.length === 0) return;
+
+    const fetchPLData = async () => {
+      try {
+        const targetDate = date || new Date().toLocaleDateString('en-CA', {
+          timeZone: 'America/Chicago'
+        });
+        
+        const response = await fetch(`http://localhost:8000/suggestions/${targetDate}/pl-data`);
+        if (response.ok) {
+          const data = await response.json();
+          setPLData(data.pl_data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch P&L data:', error);
+        setPLData([]);
+      }
+    };
+
+    fetchPLData();
+  }, [showCharts, suggestions, date]);
 
   const getTenorBadgeColor = (tenor: string) => {
     switch (tenor) {
@@ -98,9 +125,26 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
     );
   }
 
+  // Find P&L data for a specific suggestion
+  const findPLData = (suggestion: Suggestion) => {
+    return plData.find(pl => 
+      pl.tenor === suggestion.tenor && 
+      pl.strategy === suggestion.strategy
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-[#A7B3C5]">Option Structure Suggestions</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-[#A7B3C5]">Option Structure Suggestions</h3>
+        <button
+          onClick={() => setShowCharts(!showCharts)}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-[#A7B3C5] hover:text-[#E8ECF2] transition-colors"
+        >
+          {showCharts ? <EyeOff className="w-3 h-3" /> : <BarChart3 className="w-3 h-3" />}
+          {showCharts ? 'Hide P&L' : 'Show P&L'}
+        </button>
+      </div>
       
       {suggestions.map((suggestion, index) => (
         <motion.div
@@ -192,6 +236,55 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
               </span>
             </div>
           </div>
+
+          {/* Enhanced P&L Chart - Now More Prominent */}
+          {showCharts && (() => {
+            const suggestPLData = findPLData(suggestion);
+            return suggestPLData ? (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-4 h-4 text-[#00D4AA]" />
+                  <span className="text-sm font-medium text-[#E8ECF2]">Profit & Loss Analysis</span>
+                  <div className="flex-1 h-px bg-white/8"></div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    suggestion.tenor === '0DTE' ? 'bg-red-500/20 text-red-300' :
+                    suggestion.tenor === '1W' ? 'bg-yellow-500/20 text-yellow-300' :
+                    'bg-green-500/20 text-green-300'
+                  }`}>
+                    {suggestion.tenor}
+                  </span>
+                </div>
+                
+                {/* Use Standard size for much better visibility */}
+                <div className="bg-[#0B0D12]/50 rounded-xl p-3 border border-white/5">
+                  <PLChartStandard 
+                    data={{
+                      ...suggestPLData,
+                      // Pass additional context for enhanced visualization
+                      current_pl: suggestPLData.current_pl,
+                      time_to_expiry: suggestion.tenor === '0DTE' ? 8 : 
+                                     suggestion.tenor === '1W' ? 168 : 720
+                    }} 
+                    showBreakevens={true}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-4 h-4 text-[#64748B]" />
+                  <span className="text-sm font-medium text-[#A7B3C5]">P&L Analysis</span>
+                  <div className="flex-1 h-px bg-white/8"></div>
+                </div>
+                <div className="bg-[#0B0D12]/50 rounded-xl p-6 border border-white/5 flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-[#64748B]">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm">Loading P&L analysis...</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Management Notes */}
           {suggestion.management_notes && (

@@ -13,6 +13,7 @@ from .database import get_db
 from .models import AIPrediction, DailyPrediction
 from .ai_predictor import ai_predictor
 from .config import settings
+from .ai_prediction_service import AIPredictionService
 
 
 class AIPredictionResponse(BaseModel):
@@ -46,8 +47,8 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
     4. Calculate accuracy metrics
     """
     
-    # Check if we already have predictions for this date
-    existing_predictions = db.query(AIPrediction).filter(AIPrediction.date == target_date).all()
+    # Get unique predictions for this date (handles duplicates correctly)
+    existing_predictions = AIPredictionService.get_unique_predictions_for_date(db, target_date)
     
     ai_preview = None
     if not existing_predictions:
@@ -74,10 +75,25 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"AI prediction generation failed: {str(e)}")
     else:
-        # We already have stored predictions; still generate a fresh preview for analysis/sentiment display
-        try:
-            ai_preview = ai_predictor.generate_predictions(target_date)
-        except Exception:
+        # We already have stored predictions; use the stored market context
+        # NO regeneration - this was causing expensive GPT-5 calls on every page load!
+        if existing_predictions and existing_predictions[0].market_context:
+            # Reconstruct preview from stored data
+            from .ai_predictor import DayPredictions, PricePrediction
+            ai_preview = DayPredictions(
+                date=target_date,
+                market_context=existing_predictions[0].market_context,
+                predictions=[
+                    PricePrediction(
+                        checkpoint=pred.checkpoint,
+                        predicted_price=pred.predicted_price,
+                        confidence=pred.confidence,
+                        reasoning=pred.reasoning
+                    )
+                    for pred in existing_predictions
+                ]
+            )
+        else:
             ai_preview = None
     
     # Get actual prices if available
@@ -88,19 +104,8 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
     total_error = 0
     accurate_predictions = 0
     
-    # Group predictions by checkpoint to avoid duplicates
-    checkpoint_map = {}
+    # Process unique predictions (service already handles deduplication)
     for ai_pred in existing_predictions:
-        # Keep only the most recent prediction for each checkpoint
-        if ai_pred.checkpoint not in checkpoint_map or ai_pred.id > checkpoint_map[ai_pred.checkpoint].id:
-            checkpoint_map[ai_pred.checkpoint] = ai_pred
-    
-    # Process unique predictions
-    for checkpoint in ["open", "noon", "twoPM", "close"]:
-        if checkpoint not in checkpoint_map:
-            continue
-            
-        ai_pred = checkpoint_map[checkpoint]
         
         # Get actual price for this checkpoint
         actual_price = None
@@ -207,14 +212,14 @@ def create_ai_prediction_for_date(
     # Ensure pending inserts are flushed so queries can see them (autoflush is disabled)
     db.flush()
 
-    # derive band from just-added rows (or directly from memory if needed)
-    stored_preds = db.query(AIPrediction).filter(AIPrediction.date == target_date).all()
-    if not stored_preds:
+    # derive band from unique predictions only (fixes duplicate issue)
+    unique_preds = AIPredictionService.get_unique_predictions_for_date(db, target_date)
+    if not unique_preds:
         # fallback to in-memory predictions list
         band_prices = [p.predicted_price for p in day_predictions.predictions]
         band = {"low": float(min(band_prices)), "high": float(max(band_prices))} if band_prices else None
     else:
-        band = _compute_band_from_ai(stored_preds)
+        band = AIPredictionService.compute_band_from_predictions(unique_preds)
     if not band:
         raise HTTPException(status_code=500, detail="AI did not produce predictions")
 
