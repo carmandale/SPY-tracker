@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Activity, DollarSign, Target, AlertCircle, BarChart3, Eye, EyeOff } from 'lucide-react';
-import { PLChartMini } from './PLChart';
+import { PLChartStandard, PLChartMini } from './PLChart';
 
 interface Strike {
   put_long: number;
