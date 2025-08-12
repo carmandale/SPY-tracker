@@ -393,33 +393,82 @@ export function HistoryScreen() {
                 </div>
               </div>
 
-              {/* Enhanced range visualization */}
+              {/* Enhanced range visualization with proper scaling */}
               <div className="mb-4">
-                <div className="relative h-6 bg-white/5 rounded-lg overflow-hidden">
-                  {/* Predicted range bar */}
-                  <div 
-                    className="absolute top-0 h-3 bg-[#006072]/40 border border-[#006072]" 
-                    style={{
-                      left: '10%',
-                      width: '60%'
-                    }} 
-                  />
-                  {/* Actual range bar */}
-                  <div 
-                    className={`absolute bottom-0 h-3 border ${
-                      prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
-                    }`}
-                    style={{
-                      left: '15%',
-                      width: '55%'
-                    }} 
-                  />
-                </div>
-                {/* Range labels */}
-                <div className="flex justify-between text-xs text-[#A7B3C5] mt-1">
-                  <span>Pred: ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)}</span>
-                  <span>Actual: ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)}</span>
-                </div>
+                {(() => {
+                  // Only show visualization if we have actual range data
+                  if (!prediction.actualLow || !prediction.actualHigh) {
+                    return (
+                      <div className="text-center py-2 text-[#A7B3C5] text-xs">
+                        Day incomplete - no range comparison available
+                      </div>
+                    );
+                  }
+
+                  // Calculate price range for scaling
+                  const allPrices = [prediction.low, prediction.high, prediction.actualLow, prediction.actualHigh];
+                  const minPrice = Math.min(...allPrices);
+                  const maxPrice = Math.max(...allPrices);
+                  const totalRange = maxPrice - minPrice;
+                  
+                  // Add 5% padding on each side
+                  const padding = totalRange * 0.05;
+                  const chartMin = minPrice - padding;
+                  const chartMax = maxPrice + padding;
+                  const chartRange = chartMax - chartMin;
+                  
+                  // Calculate positions and widths as percentages
+                  const predLeft = ((prediction.low - chartMin) / chartRange) * 100;
+                  const predWidth = ((prediction.high - prediction.low) / chartRange) * 100;
+                  const actualLeft = ((prediction.actualLow - chartMin) / chartRange) * 100;
+                  const actualWidth = ((prediction.actualHigh - prediction.actualLow) / chartRange) * 100;
+                  
+                  return (
+                    <>
+                      <div className="relative h-8 bg-white/5 rounded-lg overflow-hidden">
+                        {/* Price scale markers */}
+                        <div className="absolute inset-x-0 top-0 h-full flex items-center justify-between px-1 text-[10px] text-[#A7B3C5]/60">
+                          <span>${chartMin.toFixed(1)}</span>
+                          <span>${chartMax.toFixed(1)}</span>
+                        </div>
+                        
+                        {/* Predicted range bar */}
+                        <div 
+                          className="absolute top-1 h-3 bg-[#006072]/40 border border-[#006072] rounded-sm" 
+                          style={{
+                            left: `${predLeft}%`,
+                            width: `${Math.max(predWidth, 1)}%`
+                          }} 
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[8px] text-white font-bold">PRED</span>
+                          </div>
+                        </div>
+                        
+                        {/* Actual range bar */}
+                        <div 
+                          className={`absolute bottom-1 h-3 border rounded-sm ${
+                            prediction.rangeHit ? 'bg-[#16A34A]/40 border-[#16A34A]' : 'bg-[#DC2626]/40 border-[#DC2626]'
+                          }`}
+                          style={{
+                            left: `${actualLeft}%`,
+                            width: `${Math.max(actualWidth, 1)}%`
+                          }} 
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[8px] text-white font-bold">ACT</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Range labels with precise values */}
+                      <div className="flex justify-between text-xs text-[#A7B3C5] mt-1">
+                        <span>Pred: ${prediction.low.toFixed(2)} - ${prediction.high.toFixed(2)} (${(prediction.high - prediction.low).toFixed(2)})</span>
+                        <span>Actual: ${prediction.actualLow.toFixed(2)} - ${prediction.actualHigh.toFixed(2)} (${(prediction.actualHigh - prediction.actualLow).toFixed(2)})</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Summary metrics */}
