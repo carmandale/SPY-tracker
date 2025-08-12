@@ -225,20 +225,30 @@ export function DashboardScreen() {
   };
   const [rangeHitPercentage, setRangeHitPercentage] = useState<number | null>(null);
   const [medianAbsError, setMedianAbsError] = useState<number | null>(null);
+  const [calibrationTip, setCalibrationTip] = useState<string>('Loading metrics...');
+  const [accuracyGrade, setAccuracyGrade] = useState<string>('N/A');
+  const [trend, setTrend] = useState<string | null>(null);
 
-  // Load metrics
+  // Load enhanced metrics
   useEffect(() => {
     const loadMetrics = async () => {
       try {
         const resp = await fetch(`http://localhost:8000/metrics`);
         if (!resp.ok) return;
         const m = await resp.json();
+        
+        // Basic metrics
         if (typeof m.rangeHit20 === 'number') {
           setRangeHitPercentage(Math.round(m.rangeHit20 * 100));
         }
         if (typeof m.medianAbsErr20 === 'number') {
           setMedianAbsError(Number(m.medianAbsErr20.toFixed(2)));
         }
+        
+        // Enhanced metrics
+        setCalibrationTip(m.calibration_tip || 'No calibration data available');
+        setAccuracyGrade(m.accuracy_grade || 'N/A');
+        setTrend(m.trend);
       } catch (e) {
         console.error('Failed to load metrics', e);
       }
@@ -385,17 +395,35 @@ export function DashboardScreen() {
         <div className="flex items-center justify-between mb-3">
           <div className="text-center">
             <p className="text-xs text-[#A7B3C5] mb-1">Range Hit %</p>
-            <p className="text-lg font-mono font-bold text-[#16A34A]">{rangeHitPercentage ?? '--'}%</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-mono font-bold text-[#16A34A]">{rangeHitPercentage ?? '--'}%</p>
+              {accuracyGrade !== 'N/A' && (
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  accuracyGrade === 'A' ? 'bg-green-500/10 text-green-400' :
+                  accuracyGrade === 'B' ? 'bg-blue-500/10 text-blue-400' :
+                  accuracyGrade === 'C' ? 'bg-yellow-500/10 text-yellow-400' :
+                  accuracyGrade === 'D' ? 'bg-orange-500/10 text-orange-400' :
+                  'bg-red-500/10 text-red-400'
+                }`}>
+                  {accuracyGrade}
+                </span>
+              )}
+            </div>
           </div>
           <div className="text-center">
             <p className="text-xs text-[#A7B3C5] mb-1">Median Abs Error</p>
-            <p className="text-lg font-mono font-bold text-[#E8ECF2]">${medianAbsError ?? '--'}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-mono font-bold text-[#E8ECF2]">${medianAbsError ?? '--'}</p>
+              {trend && (
+                <span className="text-xs text-[#A7B3C5]">{trend}</span>
+              )}
+            </div>
           </div>
         </div>
         
         <div className="bg-[#0B0D12] rounded-lg p-3">
           <p className="text-xs text-[#A7B3C5]">
-            💡 <strong>Calibration Tip:</strong> Your ranges are slightly narrow. Consider widening by 10-15% for better hit rate.
+            {calibrationTip}
           </p>
         </div>
       </motion.div>
