@@ -4,7 +4,7 @@ Generates predictions for Open, Noon, 2PM, and Close prices based on market anal
 """
 
 from datetime import datetime, date, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 import json
 import os
@@ -33,6 +33,7 @@ class DayPredictions:
     market_context: str
     pre_market_price: Optional[float] = None
     created_at: Optional[datetime] = None
+    sentiment: Optional[Dict[str, Any]] = None
 
 
 class AIPredictor:
@@ -63,7 +64,8 @@ class AIPredictor:
             predictions=predictions,
             market_context=analysis_text,
             pre_market_price=context.get("pre_market_price"),
-            created_at=datetime.now()
+            created_at=datetime.now(),
+            sentiment=getattr(self, "last_sentiment", None),
         )
     
     def _gather_market_context(self, target_date: date, lookback_days: int = 5) -> Dict:
@@ -178,6 +180,7 @@ RECENT PRICE HISTORY:
 Provide predictions in this exact JSON format:
 {{
   "analysis": "Your detailed market analysis explaining your reasoning, patterns identified, and key factors considered",
+  "sentiment": {{"direction": "bullish|bearish|neutral", "confidence": 0.0, "regime": "range-bound|trend|volatile", "factors": ["factor1", "factor2"]}},
   "open": {{"predicted_price": 580.50, "confidence": 0.75, "reasoning": "Gap up on pre-market strength"}},
   "noon": {{"predicted_price": 582.25, "confidence": 0.70, "reasoning": "Continued momentum into lunch"}},
   "twoPM": {{"predicted_price": 581.80, "confidence": 0.65, "reasoning": "Slight pullback on profit taking"}},
@@ -260,6 +263,7 @@ Provide predictions in this exact JSON format:
 
             # Extract analysis if present
             analysis = prediction_data.pop("analysis", "No detailed analysis provided")
+            sentiment = prediction_data.pop("sentiment", None)
             print(f"📝 Analysis extracted: {analysis[:100]}..." if len(analysis) > 100 else f"📝 Analysis: {analysis}")
 
             # Convert to PricePrediction objects
@@ -273,6 +277,7 @@ Provide predictions in this exact JSON format:
                 ))
 
             self.last_analysis = analysis
+            self.last_sentiment = sentiment if isinstance(sentiment, dict) else None
             return predictions
             
         except Exception as e:

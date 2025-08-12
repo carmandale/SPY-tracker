@@ -16,6 +16,12 @@ type AIDayPreview = {
   market_context: string; // analysis text
   pre_market_price?: number | null;
   predictions: AIPrediction[];
+  sentiment?: {
+    direction?: string;
+    confidence?: number;
+    regime?: string;
+    factors?: string[];
+  } | null;
 };
 
 type DayResponse = {
@@ -157,6 +163,31 @@ export function PredictScreen() {
             <p className="text-sm whitespace-pre-wrap">
               {aiPreview?.market_context || 'No analysis available.'}
             </p>
+            {aiPreview?.sentiment && (
+              <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Sentiment:</span>
+                  <span className="font-medium capitalize">{aiPreview.sentiment.direction ?? '—'}</span>
+                  {typeof aiPreview.sentiment.confidence === 'number' && (
+                    <span className="text-muted-foreground">({Math.round(aiPreview.sentiment.confidence * 100)}%)</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Regime:</span>
+                  <span className="capitalize">{aiPreview.sentiment.regime ?? '—'}</span>
+                </div>
+                {aiPreview.sentiment.factors && aiPreview.sentiment.factors.length > 0 && (
+                  <div>
+                    <div className="text-muted-foreground">Factors:</div>
+                    <ul className="list-disc pl-5">
+                      {aiPreview.sentiment.factors.map((f, i) => (
+                        <li key={i}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Per‑checkpoint table */}
