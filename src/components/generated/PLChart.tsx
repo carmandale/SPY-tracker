@@ -49,6 +49,14 @@ export function PLChart({
   showCurrentPrice = true,
   variant = 'standard'
 }: PLChartProps) {
+  // Debug logging
+  console.log('PLChart render:', {
+    current_price: data.current_price,
+    showCurrentPrice,
+    points_length: data.points?.length,
+    minPrice: data.points ? Math.min(...data.points.map(p => p.underlying_price)) : 'no points',
+    maxPrice: data.points ? Math.max(...data.points.map(p => p.underlying_price)) : 'no points'
+  });
   // Dynamic height based on variant and mobile responsiveness
   const chartHeight = useMemo(() => {
     if (height) return height;
