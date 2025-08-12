@@ -353,26 +353,23 @@ export function PLChart({
           
           {/* Current price line with enhanced styling - moved after strikes so it's on top */}
           {showCurrentPrice && (
-            <>
-              <ReferenceLine 
-                x={data.current_price} 
-                stroke="#FFD700"
-                strokeWidth={4}
-                strokeDasharray="none"
-                opacity={1}
-                label={{
-                  value: `TODAY $${data.current_price.toFixed(2)}`,
-                  position: 'bottom',
-                  offset: 10,
-                  style: {
-                    fontSize: '12px',
-                    fill: '#FFD700',
-                    fontWeight: 'bold',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.8)'
-                  }
-                }}
-              />
-            </>
+            <ReferenceLine 
+              x={data.current_price} 
+              stroke="#FFD700"
+              strokeWidth={6}
+              opacity={1}
+              isFront={true}
+              label={{
+                value: `TODAY $${data.current_price.toFixed(2)}`,
+                position: 'bottom',
+                offset: 15,
+                style: {
+                  fontSize: '12px',
+                  fill: '#FFD700',
+                  fontWeight: 'bold'
+                }
+              }}
+            />
           )}
           
           {/* Enhanced P&L curve */}
