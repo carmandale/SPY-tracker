@@ -237,20 +237,51 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
             </div>
           </div>
 
-          {/* P&L Chart */}
+          {/* Enhanced P&L Chart - Now More Prominent */}
           {showCharts && (() => {
             const suggestPLData = findPLData(suggestion);
             return suggestPLData ? (
-              <div className="bg-[#0B0D12] rounded-lg p-2 mb-3">
-                <div className="flex items-center gap-1 mb-2">
-                  <BarChart3 className="w-3 h-3 text-[#006072]" />
-                  <span className="text-xs text-[#A7B3C5]">P&L Chart</span>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-4 h-4 text-[#00D4AA]" />
+                  <span className="text-sm font-medium text-[#E8ECF2]">Profit & Loss Analysis</span>
+                  <div className="flex-1 h-px bg-white/8"></div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    suggestion.tenor === '0DTE' ? 'bg-red-500/20 text-red-300' :
+                    suggestion.tenor === '1W' ? 'bg-yellow-500/20 text-yellow-300' :
+                    'bg-green-500/20 text-green-300'
+                  }`}>
+                    {suggestion.tenor}
+                  </span>
                 </div>
-                <PLChartMini data={suggestPLData} />
+                
+                {/* Use Standard size for much better visibility */}
+                <div className="bg-[#0B0D12]/50 rounded-xl p-3 border border-white/5">
+                  <PLChartStandard 
+                    data={{
+                      ...suggestPLData,
+                      // Pass additional context for enhanced visualization
+                      current_pl: suggestPLData.current_pl,
+                      time_to_expiry: suggestion.tenor === '0DTE' ? 8 : 
+                                     suggestion.tenor === '1W' ? 168 : 720
+                    }} 
+                    showBreakevens={true}
+                  />
+                </div>
               </div>
             ) : (
-              <div className="bg-[#0B0D12] rounded-lg p-2 mb-3">
-                <p className="text-xs text-[#A7B3C5]">Loading P&L chart...</p>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-4 h-4 text-[#64748B]" />
+                  <span className="text-sm font-medium text-[#A7B3C5]">P&L Analysis</span>
+                  <div className="flex-1 h-px bg-white/8"></div>
+                </div>
+                <div className="bg-[#0B0D12]/50 rounded-xl p-6 border border-white/5 flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-[#64748B]">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm">Loading P&L analysis...</span>
+                  </div>
+                </div>
               </div>
             );
           })()}
