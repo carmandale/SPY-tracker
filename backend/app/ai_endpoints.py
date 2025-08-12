@@ -83,7 +83,7 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
                 date=target_date,
                 market_context=existing_predictions[0].market_context,
                 predictions=[
-                    PredictionPoint(
+                    PricePrediction(
                         checkpoint=pred.checkpoint,
                         predicted_price=pred.predicted_price,
                         confidence=pred.confidence,
