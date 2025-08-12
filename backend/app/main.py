@@ -230,6 +230,54 @@ def get_suggestions(day: date, db: Session = Depends(get_db)):
     return {"date": day.isoformat(), "suggestions": [s.__dict__ for s in suggestions]}
 
 
+@app.get("/history")
+def get_history(
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """Get historical predictions with pagination"""
+    predictions = (
+        db.query(DailyPrediction)
+        .order_by(desc(DailyPrediction.date))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    
+    history_items = []
+    for pred in predictions:
+        # Calculate error from close if available
+        error = None
+        if pred.close and pred.predHigh and pred.predLow:
+            pred_mid = (pred.predHigh + pred.predLow) / 2.0
+            error = abs(pred.close - pred_mid)
+        
+        history_items.append({
+            "id": pred.id,
+            "date": pred.date.isoformat(),
+            "predLow": pred.predLow,
+            "predHigh": pred.predHigh,
+            "bias": pred.bias,
+            "actualLow": pred.realizedLow or pred.open,  # Use open as fallback
+            "actualHigh": pred.realizedHigh or pred.close,  # Use close as fallback
+            "rangeHit": pred.rangeHit,
+            "notes": pred.notes,
+            "dayType": pred.dayType,
+            "error": error or pred.absErrorToClose,
+            "open": pred.open,
+            "close": pred.close,
+            "source": getattr(pred, 'source', 'manual')
+        })
+    
+    return {
+        "items": history_items,
+        "total": len(history_items),
+        "limit": limit,
+        "offset": offset
+    }
+
+
 @app.get("/metrics")
 def get_metrics(db: Session = Depends(get_db)):
     """Get 20-day rolling metrics"""
