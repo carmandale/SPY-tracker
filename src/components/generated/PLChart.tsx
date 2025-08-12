@@ -302,14 +302,32 @@ export function PLChart({
             </>
           )}
           
-          {/* Current price line */}
+          {/* Profit zone highlighting */}
+          <ReferenceArea
+            x1={data.profit_zone_start}
+            x2={data.profit_zone_end}
+            fill="#00D4AA"
+            fillOpacity={0.08}
+            stroke="none"
+          />
+          
+          {/* Current price line with enhanced styling */}
           {showCurrentPrice && (
-            <ReferenceLine 
-              x={data.current_price} 
-              stroke="#E8ECF2" 
-              strokeWidth={2}
-              opacity={0.8}
-            />
+            <>
+              <ReferenceLine 
+                x={data.current_price} 
+                stroke="#FFD700"
+                strokeWidth={3}
+                strokeDasharray="none"
+                opacity={0.9}
+              />
+              {/* Current P&L indicator dot */}
+              <ReferenceLine 
+                x={data.current_price}
+                y={currentPL}
+                stroke="none"
+              />
+            </>
           )}
           
           {/* P&L curve */}
