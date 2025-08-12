@@ -148,13 +148,16 @@ export function PLChart({
     const prices = data.points.map(p => p.underlying_price);
     const pls = data.points.map(p => p.total_pl);
     
+    // Ensure current price is always included in the domain
+    const allPrices = [...prices, data.current_price];
+    
     return {
-      minPrice: Math.min(...prices),
-      maxPrice: Math.max(...prices),
+      minPrice: Math.min(...allPrices),
+      maxPrice: Math.max(...allPrices),
       minPL: Math.min(...pls),
       maxPL: Math.max(...pls)
     };
-  }, [data.points]);
+  }, [data.points, data.current_price]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
