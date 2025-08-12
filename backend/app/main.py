@@ -513,6 +513,100 @@ def ai_predict_create(
     return create_ai_prediction_for_date(target_date, lookbackDays, db)
 
 
+# Historical Simulation Endpoints
+@app.post("/simulation/run")
+def run_historical_simulation(
+    end_date: date = Body(..., description="Last trading day to simulate"),
+    num_days: int = Body(10, description="Number of trading days to simulate"),
+    lookback_days: int = Body(5, description="Days of history for AI context"),
+    store_results: bool = Body(True, description="Store results in database"),
+    db: Session = Depends(get_db)
+):
+    """
+    Run historical simulation generating backdated AI predictions.
+    
+    This endpoint:
+    1. Uses GPT-5 to predict prices using only historically available data
+    2. Compares predictions against actual market outcomes
+    3. Provides comprehensive accuracy analysis
+    4. Optionally stores results in database for review
+    """
+    try:
+        # Run simulation
+        db_session = db if store_results else None
+        results = historical_simulator.run_simulation(
+            end_date=end_date,
+            num_days=num_days, 
+            lookback_days=lookback_days,
+            db=db_session
+        )
+        
+        # Convert to serializable format
+        simulation_data = {
+            "simulation_id": f"sim_{end_date.isoformat()}_{num_days}days",
+            "parameters": {
+                "end_date": end_date.isoformat(),
+                "num_days": num_days,
+                "lookback_days": lookback_days,
+                "stored_in_db": store_results
+            },
+            "date_range": {
+                "start_date": results.start_date.isoformat(),
+                "end_date": results.end_date.isoformat(),
+                "total_days": results.total_days
+            },
+            "overall_metrics": results.overall_metrics,
+            "performance_summary": results.performance_summary,
+            "daily_results": [
+                {
+                    "date": day.date.isoformat(),
+                    "predictions": [
+                        {
+                            "checkpoint": pred.checkpoint,
+                            "predicted_price": pred.predicted_price,
+                            "confidence": pred.confidence,
+                            "reasoning": pred.reasoning
+                        }
+                        for pred in day.predictions.predictions
+                    ],
+                    "actual_prices": day.actual_prices,
+                    "errors": day.errors,
+                    "market_context": day.predictions.market_context
+                }
+                for day in results.simulation_days
+            ]
+        }
+        
+        return {
+            "status": "success",
+            "message": f"Simulation completed for {num_days} trading days ending {end_date}",
+            "results": simulation_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
+
+@app.get("/simulation/quick/{num_days}")
+def quick_simulation(
+    num_days: int = Path(..., description="Number of recent trading days to simulate"),
+    db: Session = Depends(get_db)
+):
+    """Quick simulation using recent trading days (convenience endpoint)."""
+    from datetime import datetime
+    
+    # Use today as end date (will find most recent trading day)
+    end_date = datetime.now().date()
+    
+    return run_historical_simulation(
+        end_date=end_date,
+        num_days=num_days,
+        lookback_days=5,
+        store_results=True,
+        db=db
+    )
+
+
 @app.get("/scheduler/status")
 def get_scheduler_status():
     """Get current scheduler status and job information"""
