@@ -237,6 +237,24 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
             </div>
           </div>
 
+          {/* P&L Chart */}
+          {showCharts && (() => {
+            const suggestPLData = findPLData(suggestion);
+            return suggestPLData ? (
+              <div className="bg-[#0B0D12] rounded-lg p-2 mb-3">
+                <div className="flex items-center gap-1 mb-2">
+                  <BarChart3 className="w-3 h-3 text-[#006072]" />
+                  <span className="text-xs text-[#A7B3C5]">P&L Chart</span>
+                </div>
+                <PLChartMini data={suggestPLData} />
+              </div>
+            ) : (
+              <div className="bg-[#0B0D12] rounded-lg p-2 mb-3">
+                <p className="text-xs text-[#A7B3C5]">Loading P&L chart...</p>
+              </div>
+            );
+          })()}
+
           {/* Management Notes */}
           {suggestion.management_notes && (
             <div className="flex items-start gap-2">
