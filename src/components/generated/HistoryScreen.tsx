@@ -40,7 +40,7 @@ export function HistoryScreen() {
           actualLow: item.actualLow ?? 0,
           actualHigh: item.actualHigh ?? 0,
           rangeHit: !!item.rangeHit,
-          notes: item.notes || `${item.source === 'ai' ? '🤖 AI' : '📝 Manual'} prediction`,
+          notes: item.notes || `${item.source === 'ai' ? '🤖 AI prediction' : item.source === 'ai_simulation' ? '🔬 AI simulation' : '📝 Manual prediction'}`,
           dayType: (item.dayType || 'normal') as any,
           error: item.error ?? 0,
         }));
