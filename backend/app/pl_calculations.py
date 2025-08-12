@@ -60,10 +60,11 @@ class PLCalculator:
         Returns:
             PLData object with complete P&L analysis
         """
-        # Calculate price range for analysis
-        price_range = current_price * price_range_pct
-        min_price = current_price - price_range
-        max_price = current_price + price_range
+        # Calculate price range for analysis - constrained by strikes
+        # Add small buffer (2%) beyond the long strikes for better visualization
+        buffer = 0.02
+        min_price = put_long * (1 - buffer)
+        max_price = call_long * (1 + buffer)
         
         # Generate price points
         prices = np.linspace(min_price, max_price, resolution)
