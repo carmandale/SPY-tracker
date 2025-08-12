@@ -32,6 +32,7 @@ class DayPredictionsResponse(BaseModel):
     pre_market_price: Optional[float] = None
     predictions: List[AIPredictionResponse]
     accuracy_summary: Optional[Dict[str, Any]] = None
+    sentiment: Optional[Dict[str, Any]] = None
 
 
 def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)) -> DayPredictionsResponse:
@@ -48,10 +49,12 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
     # Check if we already have predictions for this date
     existing_predictions = db.query(AIPrediction).filter(AIPrediction.date == target_date).all()
     
+    ai_preview = None
     if not existing_predictions:
         # Generate new AI predictions
         try:
             day_predictions = ai_predictor.generate_predictions(target_date)
+            ai_preview = day_predictions
             
             # Store predictions in database
             for pred in day_predictions.predictions:
@@ -70,6 +73,12 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
             
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"AI prediction generation failed: {str(e)}")
+    else:
+        # We already have stored predictions; still generate a fresh preview for analysis/sentiment display
+        try:
+            ai_preview = ai_predictor.generate_predictions(target_date)
+        except Exception:
+            ai_preview = None
     
     # Get actual prices if available
     actual_data = db.query(DailyPrediction).filter(DailyPrediction.date == target_date).first()
@@ -131,10 +140,11 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
     
     return DayPredictionsResponse(
         date=target_date.isoformat(),
-        market_context=existing_predictions[0].market_context if existing_predictions else "No context available",
+        market_context=(ai_preview.market_context if ai_preview else (existing_predictions[0].market_context if existing_predictions else "No context available")),
         pre_market_price=actual_data.preMarket if actual_data else None,
         predictions=predictions,
-        accuracy_summary=accuracy_summary
+        accuracy_summary=accuracy_summary,
+        sentiment=(ai_preview.sentiment if ai_preview else None),
     )
 
 
