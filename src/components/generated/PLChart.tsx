@@ -206,8 +206,52 @@ export function PLChart({
   };
 
   return (
-    <div className="relative touch-pan-y">
-      <ResponsiveContainer width="100%" height={height}>
+    <div 
+      className={`relative touch-pan-y rounded-xl overflow-hidden ${
+        tenorTheme.urgency === 'high' ? 'ring-2 ring-red-500/30' : 
+        tenorTheme.urgency === 'medium' ? 'ring-1 ring-yellow-500/20' : ''
+      }`}
+      style={{
+        background: `linear-gradient(135deg, rgba(${tenorTheme.urgency === 'high' ? '220, 38, 38' : tenorTheme.urgency === 'medium' ? '245, 158, 11' : '16, 185, 129'}, 0.02) 0%, rgba(11, 13, 18, 0.8) 100%)`,
+        boxShadow: tenorTheme.glowColor ? `0 0 20px ${tenorTheme.glowColor}33` : undefined
+      }}
+    >
+      {/* Enhanced Header with Live P&L Status */}
+      {variant !== 'mini' && (
+        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+              plStatus.isWinning 
+                ? 'bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/30' 
+                : 'bg-[#FF6B6B]/20 text-[#FF6B6B] border border-[#FF6B6B]/30'
+            }`}>
+              <StatusIcon className="w-3 h-3" />
+              {plStatus.statusText}
+              <span className="font-mono">
+                {currentPL >= 0 ? '+' : ''}${currentPL.toFixed(0)}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {tenorTheme.warningText && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-300 rounded-full text-xs font-medium animate-pulse">
+                <AlertTriangle className="w-3 h-3" />
+                {tenorTheme.warningText}
+              </div>
+            )}
+            
+            {variant === 'expanded' && data.time_to_expiry && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-[#0B0D12]/60 text-[#A7B3C5] rounded-full text-xs">
+                <Clock className="w-3 h-3" />
+                {data.time_to_expiry < 24 ? `${data.time_to_expiry.toFixed(0)}h` : `${(data.time_to_expiry/24).toFixed(1)}d`}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
           <XAxis 
             dataKey="price"
