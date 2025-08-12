@@ -349,13 +349,13 @@ export function PLChart({
                 strokeDasharray={isShortStrike ? '4 2' : '2 4'}
                 opacity={0.7}
                 label={{
-                  value: `$${Math.round(strikePrice)}`,
-                  position: 'topLeft',
-                  offset: 5,
+                  value: `${Math.round(strikePrice)}`,
+                  position: 'top',
+                  offset: 2,
                   style: {
-                    fontSize: '10px',
+                    fontSize: '8px',
                     fill: isShortStrike ? '#DC2626' : '#64748B',
-                    fontWeight: isShortStrike ? 'bold' : 'normal'
+                    fontWeight: 'normal'
                   }
                 }}
               />
