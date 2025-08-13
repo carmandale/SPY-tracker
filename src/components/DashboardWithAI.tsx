@@ -90,7 +90,7 @@ export function DashboardWithAI() {
               );
               return { ...item, price: pred?.predicted_price || null };
             }));
-          } else {
+          } catch (aiError) {
             setDataSource('❌ No Data Available');
           }
         }
