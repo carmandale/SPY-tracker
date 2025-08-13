@@ -219,9 +219,7 @@ export function DashboardScreen() {
   useEffect(() => {
     const loadMetrics = async () => {
       try {
-        const resp = await fetch(`http://localhost:8000/metrics`);
-        if (!resp.ok) return;
-        const m = await resp.json();
+        const m = await api.getMetrics();
         
         // Basic metrics
         if (typeof m.rangeHit20 === 'number') {
