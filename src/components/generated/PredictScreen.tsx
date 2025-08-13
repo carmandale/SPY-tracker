@@ -82,22 +82,28 @@ export function PredictScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      const resp = await fetch(`http://localhost:8000/ai/predict/${today}?lookbackDays=${lookbackDays}`, {
-        method: 'POST',
-      });
-      if (resp.status === 409) {
-        // already locked
-        const dayResp = await fetch(`http://localhost:8000/day/${today}`);
-        if (dayResp.ok) setLockedDay(await dayResp.json());
-        return;
-      }
-      if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(`Create failed (${resp.status}): ${txt}`);
+      try {
+        await api.createAIPrediction(today, lookbackDays);
+      } catch (createError: any) {
+        if (createError?.response?.status === 409) {
+          // already locked
+          try {
+            const day = await api.getPrediction(today);
+            setLockedDay(day);
+          } catch (dayError) {
+            // ignore
+          }
+          return;
+        }
+        throw new Error(`Create failed: ${createError?.message || 'Unknown error'}`);
       }
       // refresh day
-      const dayResp = await fetch(`http://localhost:8000/day/${today}`);
-      if (dayResp.ok) setLockedDay(await dayResp.json());
+      try {
+        const day = await api.getPrediction(today);
+        setLockedDay(day);
+      } catch (dayError) {
+        // ignore
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create & lock');
     } finally {
