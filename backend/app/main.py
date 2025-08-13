@@ -996,3 +996,19 @@ def get_accuracy_metrics(
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
+
+
+# Static file serving for frontend (MUST be at the end after all API routes)
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    # Serve React app for production - this catch-all route MUST be last
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):        
+        # Serve index.html for all non-API routes (SPA routing)
+        index_file = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not built or static files not found")
