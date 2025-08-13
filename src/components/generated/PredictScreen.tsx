@@ -112,13 +112,13 @@ export function PredictScreen() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">AI Prediction</h2>
-          <p className="text-sm text-muted-foreground">{today} (CST)</p>
+          <h2 className="text-xl font-semibold text-[#E8ECF2]">AI Prediction</h2>
+          <p className="text-sm text-[#A7B3C5]">{today} (CST)</p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground">Lookback</label>
+          <label className="text-sm text-[#A7B3C5]">Lookback</label>
           <select
-            className="border rounded px-2 py-1 text-sm bg-background"
+            className="border border-white/8 rounded px-2 py-1 text-sm bg-[#12161D] text-[#E8ECF2]"
             value={lookbackDays}
             onChange={(e) => setLookbackDays(Number(e.target.value))}
             disabled={locked || submitting}
