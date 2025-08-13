@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { api } from '../utils/apiClient';
 
 interface PredictionData {
   low: number;
