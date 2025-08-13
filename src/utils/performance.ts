@@ -47,7 +47,7 @@ export function debounce<T extends (...args: any[]) => any>(
     };
     
     clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
+    timeout = window.setTimeout(later, wait);
   };
 }
 
