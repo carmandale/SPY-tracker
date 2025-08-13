@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: SPY-tracker
+    env: docker
+    plan: starter
+    region: oregon
+    autoDeploy: true
+    healthCheckPath: /healthz
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      # Secrets set in dashboard will not be overwritten
+      - key: OPENAI_API_KEY
+        sync: false
+    disk:
+      name: data
+      mountPath: /app/backend
+      sizeGB: 1
+
