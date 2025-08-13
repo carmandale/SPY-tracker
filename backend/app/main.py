@@ -58,6 +58,40 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 _scheduler = start_scheduler(get_db)
 
+# Ensure today's AI band exists after 08:00 CST on weekdays
+try:
+    from zoneinfo import ZoneInfo
+    from datetime import datetime as _dt
+    from .scheduler import _run_ai_prediction  # internal utility used by scheduler job
+    tz = ZoneInfo(settings.timezone)
+    now_local = _dt.now(tz)
+    if now_local.weekday() < 5:  # Monday=0 .. Friday=4
+        # Only auto-generate if we're past 08:00 local time and day isn't already locked by AI
+        past_8am = (now_local.hour, now_local.minute) >= (8, 0)
+        if past_8am:
+            db = next(get_db())
+            try:
+                from .models import DailyPrediction
+                existing = (
+                    db.query(DailyPrediction)
+                    .filter(DailyPrediction.date == now_local.date())
+                    .first()
+                )
+                should_generate = not existing or not (getattr(existing, "locked", False) and getattr(existing, "source", None) == "ai")
+            finally:
+                db.close()
+
+            if should_generate:
+                # Run the same routine the 08:00 job uses; safe to call repeatedly
+                try:
+                    _run_ai_prediction(get_db)
+                except Exception:
+                    # Never block app startup on best-effort warmup
+                    pass
+except Exception:
+    # Best-effort warmup only; ignore any import/timezone errors
+    pass
+
 # Note: Static file serving will be added at the end of the file
 
 

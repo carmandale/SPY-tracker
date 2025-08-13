@@ -133,7 +133,30 @@ export function DashboardScreen() {
               };
             }));
           } catch (aiError) {
-            setDataSource('❌ No Data Available');
+            // Final fallback: attempt a best-effort create if after 8:00 CST
+            try {
+              const nowCST = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour12: false });
+              const [hh, mm] = nowCST.split(':').map(Number);
+              if (hh > 8 || (hh === 8 && mm >= 0)) {
+                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+                await api.createAIPrediction(today);
+                const day = await api.getPrediction(today);
+                if (day?.predLow && day?.predHigh) {
+                  setPrediction({
+                    low: day.predLow,
+                    high: day.predHigh,
+                    bias: day.bias || 'neutral',
+                    notes: day.notes || 'AI band created'
+                  });
+                  setDataSource('🤖 AI Prediction');
+                  setLocked(!!day.locked);
+                }
+              } else {
+                setDataSource('❌ No Data Available');
+              }
+            } catch {
+              setDataSource('❌ No Data Available');
+            }
           }
         }
       } catch (error) {
