@@ -1,9 +1,17 @@
 {
-  "functions": {
-    "backend/app/main.py": {
-      "runtime": "python3.9"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "backend/app/main.py",
+      "use": "@vercel/python"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -13,13 +21,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "VITE_API_URL": "https://spy-tracker-gamma.vercel.app"
-  },
-  "build": {
-    "env": {
-      "VITE_API_URL": "https://spy-tracker-gamma.vercel.app"
-    }
-  }
+  ]
 }
