@@ -209,11 +209,11 @@ export function PredictScreen() {
                 <tbody>
                   {(aiPreview?.predictions || []).map((p) => (
                     <tr key={p.checkpoint} className="align-top">
-                      <td className="py-2 pr-4 font-medium capitalize">{p.checkpoint}</td>
-                      <td className="py-2 pr-4">${p.predicted_price.toFixed(2)}</td>
-                      <td className="py-2 pr-4">{Math.round(p.confidence * 100)}%</td>
-                      <td className="py-2 pr-4 max-w-[40ch] whitespace-pre-wrap">{p.reasoning}</td>
-                      <td className="py-2">{p.actual_price != null ? `$${p.actual_price.toFixed(2)}` : '—'}</td>
+                      <td className="py-2 pr-4 font-medium capitalize text-[#E8ECF2]">{p.checkpoint}</td>
+                      <td className="py-2 pr-4 text-[#E8ECF2] font-mono">${p.predicted_price.toFixed(2)}</td>
+                      <td className="py-2 pr-4 text-[#A7B3C5]">{Math.round(p.confidence * 100)}%</td>
+                      <td className="py-2 pr-4 max-w-[40ch] whitespace-pre-wrap text-[#A7B3C5]">{p.reasoning}</td>
+                      <td className="py-2 text-[#E8ECF2] font-mono">{p.actual_price != null ? `$${p.actual_price.toFixed(2)}` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
