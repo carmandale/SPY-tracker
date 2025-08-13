@@ -153,35 +153,35 @@ export function PredictScreen() {
       ) : (
         <>
           {/* Analysis */}
-          <div className="rounded-lg border p-3">
+          <div className="rounded-lg border border-white/8 bg-[#12161D] p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium">Analysis</h3>
+              <h3 className="font-medium text-[#E8ECF2]">Analysis</h3>
               {lockedDay?.predLow != null && lockedDay?.predHigh != null && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-[#A7B3C5]">
                   Band: {lockedDay.predLow.toFixed(2)} – {lockedDay.predHigh.toFixed(2)}
                 </span>
               )}
             </div>
-            <p className="text-sm whitespace-pre-wrap">
+            <p className="text-sm whitespace-pre-wrap text-[#A7B3C5]">
               {aiPreview?.market_context || 'No analysis available.'}
             </p>
             {aiPreview?.sentiment && (
               <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Sentiment:</span>
-                  <span className="font-medium capitalize">{aiPreview.sentiment.direction ?? '—'}</span>
+                  <span className="text-[#A7B3C5]">Sentiment:</span>
+                  <span className="font-medium capitalize text-[#E8ECF2]">{aiPreview.sentiment.direction ?? '—'}</span>
                   {typeof aiPreview.sentiment.confidence === 'number' && (
-                    <span className="text-muted-foreground">({Math.round(aiPreview.sentiment.confidence * 100)}%)</span>
+                    <span className="text-[#A7B3C5]">({Math.round(aiPreview.sentiment.confidence * 100)}%)</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Regime:</span>
-                  <span className="capitalize">{aiPreview.sentiment.regime ?? '—'}</span>
+                  <span className="text-[#A7B3C5]">Regime:</span>
+                  <span className="capitalize text-[#E8ECF2]">{aiPreview.sentiment.regime ?? '—'}</span>
                 </div>
                 {aiPreview.sentiment.factors && aiPreview.sentiment.factors.length > 0 && (
                   <div>
-                    <div className="text-muted-foreground">Factors:</div>
-                    <ul className="list-disc pl-5">
+                    <div className="text-[#A7B3C5]">Factors:</div>
+                    <ul className="list-disc pl-5 text-[#A7B3C5]">
                       {aiPreview.sentiment.factors.map((f, i) => (
                         <li key={i}>{f}</li>
                       ))}
@@ -193,11 +193,11 @@ export function PredictScreen() {
           </div>
 
           {/* Per‑checkpoint table */}
-          <div className="rounded-lg border">
-            <div className="p-3 border-b font-medium">Predictions</div>
+          <div className="rounded-lg border border-white/8 bg-[#12161D]">
+            <div className="p-3 border-b border-white/8 font-medium text-[#E8ECF2]">Predictions</div>
             <div className="p-3 overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-muted-foreground">
+                <thead className="text-left text-[#A7B3C5]">
                   <tr>
                     <th className="py-1 pr-4">Checkpoint</th>
                     <th className="py-1 pr-4">Price</th>
