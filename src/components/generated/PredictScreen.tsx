@@ -63,11 +63,10 @@ export function PredictScreen() {
         }
 
         // 2) Load AI preview for richer info (analysis + per-checkpoint)
-        const aiResp = await fetch(`http://localhost:8000/ai/predictions/${today}`);
-        if (aiResp.ok) {
-          const ai: AIDayPreview = await aiResp.json();
+        try {
+          const ai: AIDayPreview = await api.getAIPredictions(today);
           setAiPreview(ai);
-        } else {
+        } catch (aiError) {
           setAiPreview(null);
         }
       } catch (e: any) {
