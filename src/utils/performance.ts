@@ -64,7 +64,7 @@ export function throttle<T extends (...args: any[]) => any>(
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      window.setTimeout(() => inThrottle = false, limit);
     }
   };
 }
