@@ -55,11 +55,10 @@ export function PredictScreen() {
       setError(null);
       try {
         // 1) Check if day is already created/locked
-        const dayResp = await fetch(`http://localhost:8000/day/${today}`);
-        if (dayResp.ok) {
-          const day: DayResponse = await dayResp.json();
+        try {
+          const day: DayResponse = await api.getPrediction(today);
           setLockedDay(day);
-        } else {
+        } catch (dayError) {
           setLockedDay(null);
         }
 
