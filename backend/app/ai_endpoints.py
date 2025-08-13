@@ -7,6 +7,7 @@ from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 
 from .database import get_db
