@@ -134,7 +134,7 @@ export function PredictScreen() {
             <button
               onClick={createAndLock}
               disabled={submitting}
-              className="px-3 py-1 rounded bg-primary text-primary-foreground text-sm"
+              className="px-3 py-1 rounded bg-[#006072] text-white text-sm hover:bg-[#006072]/80 disabled:opacity-50"
             >
               {submitting ? 'Creating…' : 'Create & Lock'}
             </button>
