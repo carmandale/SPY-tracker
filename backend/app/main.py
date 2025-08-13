@@ -58,24 +58,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 _scheduler = start_scheduler(get_db)
 
-# Mount static files for production deployment
-static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-    
-    # Serve React app for production
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        # API routes should not be affected
-        if full_path.startswith(("api/", "docs", "redoc", "openapi.json", "healthz", "day/", "prediction", "suggestions", "metrics", "history", "market-data", "market-status", "ai/", "simulation/", "scheduler/", "admin/", "accuracy/", "pl/", "capture/", "log/", "recompute/")):
-            raise HTTPException(status_code=404)
-        
-        # Serve index.html for all other routes (SPA routing)
-        index_file = os.path.join(static_dir, "index.html")
-        if os.path.exists(index_file):
-            return FileResponse(index_file)
-        else:
-            raise HTTPException(status_code=404, detail="Frontend not built or static files not found")
+# Note: Static file serving will be added at the end of the file
 
 
 def _serialize_prediction(pred: DailyPrediction) -> DailyPredictionRead:
