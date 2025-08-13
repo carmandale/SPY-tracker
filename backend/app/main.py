@@ -1001,21 +1001,51 @@ def healthz():
 # Static file serving for frontend (MUST be at the end after all API routes)
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 if os.path.exists(static_dir):
-    # Mount static assets at /assets/ 
+    # Mount static assets at /assets/ with proper MIME types
     assets_dir = os.path.join(static_dir, "assets")
     if os.path.exists(assets_dir):
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        app.mount("/assets", StaticFiles(directory=assets_dir, html=False), name="assets")
+        print(f"✅ Mounted assets directory: {assets_dir}")
+        # List available assets for debugging
+        try:
+            asset_files = os.listdir(assets_dir)
+            print(f"📁 Available assets: {asset_files}")
+        except Exception as e:
+            print(f"⚠️ Could not list assets: {e}")
+    else:
+        print(f"❌ Assets directory not found: {assets_dir}")
+    
+    # Serve favicon directly from static root if it exists
+    favicon_path = os.path.join(static_dir, "favicon.ico")
+    if os.path.exists(favicon_path):
+        @app.get("/favicon.ico")
+        async def get_favicon():
+            return FileResponse(favicon_path, media_type="image/x-icon")
     
     # Serve React app for production - this catch-all route MUST be last
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):        
-        # Don't intercept asset requests - let them 404 naturally if not found
+        # Don't intercept explicit asset requests - these should be handled by the mount above
         if full_path.startswith("assets/"):
-            raise HTTPException(status_code=404, detail="Asset not found")
+            print(f"⚠️ Asset request reached SPA handler: {full_path}")
+            raise HTTPException(status_code=404, detail=f"Asset not found: {full_path}")
             
-        # Serve index.html for all non-API routes (SPA routing)
+        # Don't intercept API routes
+        if full_path.startswith("api/") or full_path in ["docs", "redoc", "openapi.json"]:
+            raise HTTPException(status_code=404, detail="API route not found")
+            
+        # Serve index.html for all other routes (SPA routing)
         index_file = os.path.join(static_dir, "index.html")
         if os.path.exists(index_file):
-            return FileResponse(index_file)
+            return FileResponse(index_file, media_type="text/html")
         else:
             raise HTTPException(status_code=404, detail="Frontend not built or static files not found")
+else:
+    print(f"❌ Static directory not found: {static_dir}")
+    print("🔍 Available directories in backend:")
+    try:
+        backend_dir = os.path.dirname(os.path.dirname(__file__))
+        backend_contents = os.listdir(backend_dir)
+        print(f"📁 Backend directory contents: {backend_contents}")
+    except Exception as e:
+        print(f"⚠️ Could not list backend directory: {e}")
