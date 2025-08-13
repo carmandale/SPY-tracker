@@ -71,11 +71,8 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
           timeZone: 'America/Chicago'
         });
         
-        const response = await fetch(`http://localhost:8000/suggestions/${targetDate}/pl-data`);
-        if (response.ok) {
-          const data = await response.json();
-          setPLData(data.pl_data || []);
-        }
+        const data = await api.getSuggestionsPLData(targetDate);
+        setPLData(data.pl_data || []);
       } catch (error) {
         console.error('Failed to fetch P&L data:', error);
         setPLData([]);
