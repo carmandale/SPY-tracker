@@ -60,9 +60,8 @@ export function DashboardScreen() {
           timeZone: 'America/Chicago'
         });
 
-        const response = await fetch(`http://localhost:8000/day/${today}`);
-        if (response.ok) {
-          const data = await response.json();
+        try {
+          const data = await api.getPrediction(today);
           
           // Update prediction data
           if (data.predLow && data.predHigh) {
