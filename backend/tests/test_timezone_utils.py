@@ -44,13 +44,15 @@ class TestTimezoneUtils(unittest.TestCase):
         open_dt = get_checkpoint_datetime(test_date, "open")
         self.assertEqual(open_dt.hour, 9)
         self.assertEqual(open_dt.minute, 30)
-        self.assertEqual(open_dt.tzinfo, ET)
+        # Check timezone name instead of object equality
+        self.assertEqual(open_dt.tzinfo.zone, ET.zone)
         
         # Market close (4:00 PM ET)
         close_dt = get_checkpoint_datetime(test_date, "close")
         self.assertEqual(close_dt.hour, 16)
         self.assertEqual(close_dt.minute, 0)
-        self.assertEqual(close_dt.tzinfo, ET)
+        # Check timezone name instead of object equality
+        self.assertEqual(close_dt.tzinfo.zone, ET.zone)
         
         # Test with invalid checkpoint
         with self.assertRaises(ValueError):
