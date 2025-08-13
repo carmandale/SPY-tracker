@@ -53,18 +53,15 @@ export function HistoryScreen() {
             // Fetch AI predictions for this date if source is AI
             if (item.source === 'ai' || item.source === 'ai_simulation') {
               try {
-                const aiResp = await fetch(`http://localhost:8000/ai/predictions/${item.date}`);
-                if (aiResp.ok) {
-                  const aiData = await aiResp.json();
-                  aiPredictions = aiData.predictions.map((pred: any) => ({
-                    checkpoint: pred.checkpoint,
-                    predicted_price: pred.predicted_price,
-                    actual_price: pred.actual_price,
-                    confidence: pred.confidence,
-                    reasoning: pred.reasoning,
-                    prediction_error: pred.prediction_error
-                  }));
-                }
+                const aiData = await api.getAIPredictions(item.date);
+                aiPredictions = aiData.predictions.map((pred: any) => ({
+                  checkpoint: pred.checkpoint,
+                  predicted_price: pred.predicted_price,
+                  actual_price: pred.actual_price,
+                  confidence: pred.confidence,
+                  reasoning: pred.reasoning,
+                  prediction_error: pred.prediction_error
+                }));
               } catch (e) {
                 console.warn('Failed to fetch AI predictions for', item.date);
               }
