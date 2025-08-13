@@ -999,13 +999,24 @@ def healthz():
 
 
 # Static file serving for frontend (MUST be at the end after all API routes)
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    # Mount static assets at /assets/ 
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
     
     # Serve React app for production - this catch-all route MUST be last
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):        
+        # Don't intercept asset requests - let them 404 naturally if not found
+        if full_path.startswith("assets/"):
+            raise HTTPException(status_code=404, detail="Asset not found")
+            
         # Serve index.html for all non-API routes (SPA routing)
         index_file = os.path.join(static_dir, "index.html")
         if os.path.exists(index_file):
