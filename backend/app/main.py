@@ -952,6 +952,42 @@ def cleanup_future_data(db: Session = Depends(get_db)):
     }
 
 
+# Accuracy Metrics Endpoints
+@app.get("/accuracy/metrics")
+def get_accuracy_metrics(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    model_name: Optional[str] = None,
+    checkpoint: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get comprehensive accuracy metrics for predictions."""
+    from .accuracy_metrics import calculate_prediction_accuracy
+    
+    try:
+        metrics = calculate_prediction_accuracy(
+            db=db,
+            start_date=start_date,
+            end_date=end_date,
+            model_name=model_name,
+            checkpoint=checkpoint
+        )
+        
+        return {
+            "status": "success",
+            "metrics": metrics,
+            "filters": {
+                "start_date": start_date.isoformat() if start_date else None,
+                "end_date": end_date.isoformat() if end_date else None,
+                "model_name": model_name,
+                "checkpoint": checkpoint
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Accuracy calculation failed: {str(e)}")
+
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
