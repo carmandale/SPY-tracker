@@ -897,6 +897,52 @@ def trigger_scheduler_job(job_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Job execution failed: {str(e)}")
 
 
+@app.post("/admin/backfill-actuals/{target_date}")
+def backfill_actuals_for_day(target_date: date, db: Session = Depends(get_db)):
+    """Backfill actual Open/Noon/2PM/Close prices for a given date using yfinance.
+
+    - Noon is approximated as the mid of High/Low
+    - 2PM is approximated as 30% High + 70% Low
+    """
+    try:
+        import yfinance as yf
+
+        ticker = yf.Ticker(settings.symbol)
+        hist = ticker.history(start=target_date, end=target_date, interval="1d")
+        if hist.empty:
+            # Some providers require end to be +1 day to include the row
+            hist = ticker.history(start=target_date, end=target_date.fromordinal(target_date.toordinal()+1), interval="1d")
+        if hist.empty:
+            raise HTTPException(status_code=404, detail=f"No market data for {target_date}")
+
+        row = hist.iloc[0]
+        open_p = float(row.Open)
+        high_p = float(row.High)
+        low_p = float(row.Low)
+        close_p = float(row.Close)
+        noon_p = (high_p + low_p) / 2
+        two_pm_p = high_p * 0.3 + low_p * 0.7
+
+        # Upsert DailyPrediction
+        pred = db.query(DailyPrediction).filter(DailyPrediction.date == target_date).first()
+        if pred is None:
+            pred = DailyPrediction(date=target_date)
+            db.add(pred)
+
+        pred.open = open_p
+        pred.noon = noon_p
+        pred.twoPM = two_pm_p
+        pred.close = close_p
+        _update_derived_fields(pred)
+        db.commit()
+        db.refresh(pred)
+
+        return {"status": "success", "date": target_date.isoformat(), "open": open_p, "noon": noon_p, "twoPM": two_pm_p, "close": close_p}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Backfill failed: {str(e)}")
+
 @app.post("/admin/fix-duplicate-ai-predictions")
 def fix_duplicate_ai_predictions(db: Session = Depends(get_db)):
     """Run the AI prediction deduplication migration."""
