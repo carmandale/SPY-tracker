@@ -132,7 +132,7 @@ export function DashboardScreen() {
                 price: pred?.predicted_price ? Math.round(pred.predicted_price * 100) / 100 : null 
               };
             }));
-          } else {
+          } catch (aiError) {
             setDataSource('❌ No Data Available');
           }
         }
