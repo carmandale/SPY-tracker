@@ -185,20 +185,7 @@ export function DashboardScreen() {
       });
 
       // Call the backend API
-      const response = await fetch(`http://localhost:8000/capture/${today}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          checkpoint: checkpointName,
-          price: price
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      await api.logPrice(checkpointName, { date: today, price: price });
 
       // Update the UI with the captured price
       setKeyTimes(prev => prev.map((item, i) => i === index ? {
