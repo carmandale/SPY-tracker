@@ -38,9 +38,8 @@ export function DashboardWithAI() {
         });
 
         // Try manual predictions first
-        const response = await fetch(`http://localhost:8000/day/${today}`);
-        if (response.ok) {
-          const data = await response.json();
+        try {
+          const data = await api.getPrediction(today);
           
           if (data.predLow && data.predHigh) {
             setPrediction({
