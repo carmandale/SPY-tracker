@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { api } from '../../utils/apiClient';
 
 type AICheckpoint = 'open' | 'noon' | 'twoPM' | 'close';
 
