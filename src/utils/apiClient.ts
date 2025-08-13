@@ -6,11 +6,14 @@ import { parseAPIError, retryWithBackoff } from './errorHandling';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export interface RequestOptions extends RequestInit {
+export interface RequestOptions {
   cache?: boolean;
   cacheTTL?: number;
   retry?: boolean;
   maxRetries?: number;
+  method?: string;
+  body?: string;
+  headers?: Record<string, string>;
 }
 
 /**
