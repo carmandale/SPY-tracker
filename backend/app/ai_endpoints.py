@@ -193,36 +193,64 @@ def create_ai_prediction_for_date(
     if existing_day and existing_day.locked:
         raise HTTPException(status_code=409, detail="Prediction already locked for this date")
 
-    # Generate new AI predictions and store
-    day_predictions = ai_predictor.generate_predictions(target_date, lookback_days=lookback_days)
-
-    # persist per-checkpoint predictions
-    for pred in day_predictions.predictions:
-        db.add(
-            AIPrediction(
-                date=target_date,
-                checkpoint=pred.checkpoint,
-                predicted_price=pred.predicted_price,
-                confidence=pred.confidence,
-                reasoning=pred.reasoning,
-                market_context=day_predictions.market_context,
-            )
-        )
-
-    # Ensure pending inserts are flushed so queries can see them (autoflush is disabled)
-    db.flush()
-
-    # derive band from unique predictions only (fixes duplicate issue)
-    unique_preds = AIPredictionService.get_unique_predictions_for_date(db, target_date)
-    if not unique_preds:
-        # fallback to in-memory predictions list
-        band_prices = [p.predicted_price for p in day_predictions.predictions]
-        band = {"low": float(min(band_prices)), "high": float(max(band_prices))} if band_prices else None
+    # Check if AI predictions already exist for this date
+    existing_ai_preds = AIPredictionService.get_unique_predictions_for_date(db, target_date)
+    
+    if existing_ai_preds:
+        # AI predictions already exist, use them to compute band
+        band = AIPredictionService.compute_band_from_predictions(existing_ai_preds)
+        if not band:
+            raise HTTPException(status_code=500, detail="Could not compute band from existing AI predictions")
+        
+        # Get market context from existing predictions
+        market_context = existing_ai_preds[0].market_context if existing_ai_preds else "AI predictions already generated"
+        
     else:
-        band = AIPredictionService.compute_band_from_predictions(unique_preds)
-    if not band:
-        raise HTTPException(status_code=500, detail="AI did not produce predictions")
+        # Generate new AI predictions and store
+        try:
+            day_predictions = ai_predictor.generate_predictions(target_date, lookback_days=lookback_days)
 
+            # persist per-checkpoint predictions
+            for pred in day_predictions.predictions:
+                db.add(
+                    AIPrediction(
+                        date=target_date,
+                        checkpoint=pred.checkpoint,
+                        predicted_price=pred.predicted_price,
+                        confidence=pred.confidence,
+                        reasoning=pred.reasoning,
+                        market_context=day_predictions.market_context,
+                    )
+                )
+
+            # Ensure pending inserts are flushed so queries can see them (autoflush is disabled)
+            db.flush()
+
+            # derive band from unique predictions only (fixes duplicate issue)
+            unique_preds = AIPredictionService.get_unique_predictions_for_date(db, target_date)
+            if not unique_preds:
+                # fallback to in-memory predictions list
+                band_prices = [p.predicted_price for p in day_predictions.predictions]
+                band = {"low": float(min(band_prices)), "high": float(max(band_prices))} if band_prices else None
+            else:
+                band = AIPredictionService.compute_band_from_predictions(unique_preds)
+            
+            if not band:
+                raise HTTPException(status_code=500, detail="AI did not produce predictions")
+                
+            market_context = day_predictions.market_context
+            
+        except IntegrityError:
+            # Handle race condition where predictions were created between our check and insert
+            db.rollback()
+            existing_ai_preds = AIPredictionService.get_unique_predictions_for_date(db, target_date)
+            if existing_ai_preds:
+                band = AIPredictionService.compute_band_from_predictions(existing_ai_preds)
+                market_context = existing_ai_preds[0].market_context if existing_ai_preds else "AI predictions from race condition"
+            else:
+                raise HTTPException(status_code=500, detail="Failed to create or retrieve AI predictions")
+
+    # Update DailyPrediction table with computed band
     if existing_day is None:
         existing_day = DailyPrediction(date=target_date)
         db.add(existing_day)
@@ -240,7 +268,7 @@ def create_ai_prediction_for_date(
         predHigh=existing_day.predHigh,
         source=existing_day.source or "ai",
         locked=bool(existing_day.locked),
-        analysis=day_predictions.market_context,
+        analysis=market_context,
         lookbackDays=lookback_days,
     )
 
