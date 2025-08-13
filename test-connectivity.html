@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPY Tracker Connectivity Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0B0D12; color: #E8ECF2; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #333; border-radius: 5px; }
+        .success { background: #16A34A; }
+        .error { background: #DC2626; }
+        .loading { background: #006072; }
+        button { background: #006072; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #005560; }
+        pre { background: #12161D; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>SPY Tracker Frontend-Backend Connectivity Test</h1>
+    
+    <button onclick="runTests()">Run All Tests</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testEndpoint(name, url) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test loading';
+            resultDiv.innerHTML = `<h3>${name}</h3><p>Testing...</p>`;
+            document.getElementById('results').appendChild(resultDiv);
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'test success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ ${name}</h3>
+                        <p>Status: ${response.status} OK</p>
+                        <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'test error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ ${name}</h3>
+                        <p>Status: ${response.status} ${response.statusText}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'test error';
+                resultDiv.innerHTML = `
+                    <h3>❌ ${name}</h3>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function runTests() {
+            document.getElementById('results').innerHTML = '';
+            
+            const today = new Date().toLocaleDateString('en-CA', {
+                timeZone: 'America/Chicago'
+            });
+            
+            const tests = [
+                ['Health Check', 'http://localhost:8000/healthz'],
+                ['Today\'s Data', `http://localhost:8000/day/${today}`],
+                ['AI Predictions', `http://localhost:8000/ai/predictions/${today}`],
+                ['Suggestions', `http://localhost:8000/suggestions/${today}`],
+                ['Metrics', 'http://localhost:8000/metrics'],
+                ['Market Data', 'http://localhost:8000/market-data/SPY']
+            ];
+            
+            for (const [name, url] of tests) {
+                await testEndpoint(name, url);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between tests
+            }
+        }
+        
+        // Auto-run tests on page load
+        window.onload = () => {
+            setTimeout(runTests, 1000);
+        };
+    </script>
+</body>
+</html>
