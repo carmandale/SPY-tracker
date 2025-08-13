@@ -49,11 +49,8 @@ export function SuggestionCards({ date }: SuggestionCardsProps) {
           timeZone: 'America/Chicago'
         });
         
-        const response = await fetch(`http://localhost:8000/suggestions/${targetDate}`);
-        if (response.ok) {
-          const data = await response.json();
-          setSuggestions(data.suggestions || []);
-        }
+        const data = await api.getSuggestions(targetDate);
+        setSuggestions(data.suggestions || []);
       } catch (error) {
         console.error('Failed to fetch suggestions:', error);
       } finally {
