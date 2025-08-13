@@ -999,10 +999,6 @@ def healthz():
 
 
 # Static file serving for frontend (MUST be at the end after all API routes)
-import os
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 if os.path.exists(static_dir):
     # Mount static assets at /assets/ 
