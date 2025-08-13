@@ -56,7 +56,44 @@ class AIPrediction(Base):
     market_context = Column(String, nullable=True)  # Summary of market conditions
     actual_price = Column(Float, nullable=True)  # Filled when real price comes in
     prediction_error = Column(Float, nullable=True)  # |predicted - actual|
+    # Prediction intervals (68% confidence)
+    interval_low = Column(Float, nullable=True)  # Lower bound of 68% confidence interval
+    interval_high = Column(Float, nullable=True)  # Upper bound of 68% confidence interval
+    interval_hit = Column(Boolean, nullable=True)  # Whether actual price was within interval
+    # Source tracking
+    source = Column(String, nullable=True)  # 'llm', 'baseline', 'ensemble'
+    model = Column(String, nullable=True)  # Model name/version if applicable
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+
+class BaselineModel(Base):
+    """Statistical baseline model configuration and performance tracking."""
+    __tablename__ = "baseline_models"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=True)
+    parameters = Column(String, nullable=True)  # JSON string of model parameters
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class ModelPerformance(Base):
+    """Daily performance metrics for prediction models."""
+    __tablename__ = "model_performance"
+    __table_args__ = (
+        UniqueConstraint('date', 'model_name', name='uq_model_performance_date_model'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, index=True, nullable=False)
+    model_name = Column(String, index=True, nullable=False)  # 'llm', 'baseline', 'ensemble', etc.
+    mae = Column(Float, nullable=True)  # Mean absolute error
+    rmse = Column(Float, nullable=True)  # Root mean squared error
+    hit_rate_1dollar = Column(Float, nullable=True)  # % of predictions within $1
+    interval_coverage = Column(Float, nullable=True)  # % of actuals within predicted intervals
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
