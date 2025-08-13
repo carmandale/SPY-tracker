@@ -43,12 +43,7 @@ export function HistoryScreen() {
     // Fetch historical data from new history endpoint
     const load = async () => {
       try {
-        const resp = await fetch(`http://localhost:8000/history?limit=20`);
-        if (!resp.ok) {
-          console.error('Failed to fetch history:', resp.status);
-          return;
-        }
-        const data = await resp.json();
+        const data = await api.getHistory(20, 0);
         
         // Process items and fetch AI prediction data
         const items: HistoricalPrediction[] = await Promise.all(
