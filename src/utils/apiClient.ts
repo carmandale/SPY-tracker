@@ -4,7 +4,26 @@
 import { apiCache, measurePerformance } from './performance';
 import { parseAPIError, retryWithBackoff } from './errorHandling';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+function resolveApiBaseUrl(): string {
+  // Prefer injected env var when valid and complete
+  const raw = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+  // Empty, '/', or clearly invalid → same-origin
+  if (!raw || raw === '/' || raw === '"/"') return origin;
+
+  try {
+    // Support absolute or relative base; URL() with base origin normalizes
+    const u = new URL(raw, origin);
+    // Guard against values like 'https://' (scheme only → no host)
+    if (!u.hostname) return origin;
+    return u.origin;
+  } catch {
+    return origin;
+  }
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export interface RequestOptions {
   cache?: boolean;
@@ -31,7 +50,7 @@ export async function apiRequest<T>(
     ...fetchOptions
   } = options;
 
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = new URL(endpoint, API_BASE_URL).toString();
   const cacheKey = `${fetchOptions.method || 'GET'}:${url}:${JSON.stringify(fetchOptions.body)}`;
 
   // Check cache for GET requests
