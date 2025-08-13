@@ -1,0 +1,25 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[[services]]
+name = "backend"
+source = "backend"
+[services.variables]
+PORT = "8000"
+FRONTEND_ORIGIN = "${{RAILWAY_PUBLIC_DOMAIN}}"
+DATABASE_URL = "sqlite:///./data/spy_tracker.db"
+
+[[services]]
+name = "frontend"  
+source = "."
+[services.variables]
+VITE_API_URL = "${{backend.RAILWAY_PUBLIC_DOMAIN}}"
+
+[environments.production]
+[environments.production.variables]
+NODE_ENV = "production"
+PYTHON_ENV = "production"
