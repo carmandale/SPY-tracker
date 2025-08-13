@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Calendar, Target, CheckCircle, XCircle, Filter, Activity, Clock } from 'lucide-react';
+import { api } from '../../utils/apiClient';
 
 interface CheckpointData {
   checkpoint: string;
