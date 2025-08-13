@@ -143,11 +143,13 @@ export function PredictScreen() {
       </div>
 
       {error && (
-        <div className="text-red-400 text-sm">{error}</div>
+        <div className="text-red-400 text-sm bg-red-500/10 rounded-lg p-3 border border-red-500/20">
+          <strong>Error:</strong> {error}
+        </div>
       )}
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="text-sm text-[#A7B3C5]">Loading…</div>
       ) : (
         <>
           {/* Analysis */}
