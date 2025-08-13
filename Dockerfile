@@ -24,8 +24,8 @@ WORKDIR /app
 COPY backend/ ./backend/
 WORKDIR /app/backend
 
-# Install Python dependencies
-RUN uv pip sync pyproject.toml
+# Clean any local virtualenv that may have been copied and install Python deps into system
+RUN rm -rf .venv && uv pip install --system -r pyproject.toml
 
 # Copy built frontend files
 COPY --from=frontend-builder /app/dist ./static
