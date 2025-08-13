@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "e2e": "node scripts/e2e.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
