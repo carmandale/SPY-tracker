@@ -62,12 +62,11 @@ export function DashboardWithAI() {
             }
             return { ...item, price };
           }));
-        } else {
+        } catch (manualError) {
           // If no manual predictions, try AI predictions
           console.log('No manual predictions, fetching AI predictions...');
-          const aiResponse = await fetch(`http://localhost:8000/ai/predictions/${today}`);
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
+          try {
+            const aiData = await api.getAIPredictions(today);
             console.log('AI predictions received:', aiData);
             
             // Extract predicted prices for low/high
