@@ -132,6 +132,12 @@ export const api = {
     });
   },
 
+  async getSuggestionsPLData(date: string) {
+    return apiRequest<any>(`/suggestions/${date}/pl-data`, {
+      cacheTTL: 180000, // Cache for 3 minutes
+    });
+  },
+
   // Metrics
   async getMetrics() {
     return apiRequest<any>('/metrics', {
