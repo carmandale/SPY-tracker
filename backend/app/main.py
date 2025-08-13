@@ -4,6 +4,9 @@ from statistics import median
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel, ValidationError
