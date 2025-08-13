@@ -198,22 +198,37 @@ class HistoricalSimulator:
             
             db.add(daily_pred)
         
-        # Store individual AI predictions
+        # Store individual AI predictions (idempotent)
         for pred in predictions.predictions:
             actual_price = actuals.get(pred.checkpoint)
-            prediction_error = abs(pred.predicted_price - actual_price) if actual_price else None
-            
-            ai_pred = AIPrediction(
-                date=target_date,
-                checkpoint=pred.checkpoint,
-                predicted_price=pred.predicted_price,
-                confidence=pred.confidence,
-                reasoning=f"[SIM] {pred.reasoning}",
-                market_context=f"[SIMULATION] {predictions.market_context}",
-                actual_price=actual_price,
-                prediction_error=prediction_error
-            )
-            db.add(ai_pred)
+            prediction_error = abs(pred.predicted_price - actual_price) if actual_price is not None else None
+
+            existing = db.query(AIPrediction).filter(
+                AIPrediction.date == target_date,
+                AIPrediction.checkpoint == pred.checkpoint,
+            ).first()
+
+            if existing:
+                # Update actuals if we have them now; keep original predicted values
+                if actual_price is not None:
+                    existing.actual_price = actual_price
+                    existing.prediction_error = prediction_error
+                # Ensure market_context is tagged as simulation for visibility
+                if not (existing.market_context or '').startswith('[SIMULATION]'):
+                    existing.market_context = f"[SIMULATION] {predictions.market_context}"
+                db.add(existing)
+            else:
+                ai_pred = AIPrediction(
+                    date=target_date,
+                    checkpoint=pred.checkpoint,
+                    predicted_price=pred.predicted_price,
+                    confidence=pred.confidence,
+                    reasoning=f"[SIM] {pred.reasoning}",
+                    market_context=f"[SIMULATION] {predictions.market_context}",
+                    actual_price=actual_price,
+                    prediction_error=prediction_error,
+                )
+                db.add(ai_pred)
         
         db.commit()
         print(f"✅ Stored simulation results for {target_date}")
