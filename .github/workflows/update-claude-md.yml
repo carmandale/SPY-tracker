@@ -72,11 +72,11 @@ jobs:
           PROMPT_CONTENT=$(cat .github/prompts/claude-md-review-prompt.md)
           echo "Prompt file read successfully (${#PROMPT_CONTENT} characters)"
           
-          # Save to environment file for multi-line content
+          # Save to environment file for multi-line content using a unique delimiter
           {
-            echo "PROMPT_CONTENT<<EOF"
+            echo "PROMPT_CONTENT<<CLAUDE_PROMPT_END"
             cat .github/prompts/claude-md-review-prompt.md
-            echo "EOF"
+            echo "CLAUDE_PROMPT_END"
           } >> $GITHUB_ENV
       
       - name: Generate unique branch name
