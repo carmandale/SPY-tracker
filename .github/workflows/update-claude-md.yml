@@ -68,12 +68,9 @@ jobs:
             exit 1
           fi
           
-          # Read the file content and base64 encode it to avoid delimiter issues
-          PROMPT_CONTENT_B64=$(cat .github/prompts/claude-md-review-prompt.md | base64 -w 0)
-          echo "Prompt file read successfully and encoded"
-          
-          # Save base64 encoded content to environment
-          echo "PROMPT_CONTENT_B64=${PROMPT_CONTENT_B64}" >> $GITHUB_ENV
+          # Store prompt file path in output for direct file access
+          echo "prompt_file_path=.github/prompts/claude-md-review-prompt.md" >> $GITHUB_OUTPUT
+          echo "Prompt file validated and path stored"
       
       - name: Generate unique branch name
         id: branch
