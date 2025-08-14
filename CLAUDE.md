@@ -13,9 +13,9 @@
 - **Best Practices:** @~/.agent-os/standards/best-practices.md
 
 ### Project Management
-- **Active Specs:** @.agent-os/specs/
-- **Spec Planning:** Use `@~/.agent-os/instructions/create-spec.md`
-- **Tasks Execution:** Use `@~/.agent-os/instructions/execute-tasks.md`
+- **Active Specs:** @.agent-os/specs/ (no active specs currently - all previous specs completed)
+- **Spec Planning:** Use `@~/.agent-os/instructions/create-spec.md` for new features
+- **Tasks Execution:** Use `@~/.agent-os/instructions/execute-tasks.md` for implementation
 
 ## Workflow Instructions
 
