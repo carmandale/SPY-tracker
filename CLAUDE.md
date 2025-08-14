@@ -23,6 +23,7 @@ When asked to work on this codebase:
 
 1. **First**, check @.agent-os/product/roadmap.md for current priorities
 2. **Then**, follow the appropriate instruction file:
+   - For product planning: @~/.agent-os/instructions/plan-product.md
    - For new features: @.agent-os/instructions/create-spec.md
    - For tasks execution: @.agent-os/instructions/execute-tasks.md
 3. **Always**, adhere to the standards in the files listed above
@@ -42,6 +43,13 @@ When asked to work on this codebase:
 ### Development Servers
 - **Frontend:** Port 3000 - `yarn dev`
 - **Backend:** Port 8000 - `cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000`
+
+### Database Policy (Dev & Prod)
+- Use Postgres in production and for local development.
+- Local dev connection string example:
+  - `postgresql+psycopg2://spy:pass@localhost:5432/spy`
+- Do not commit `.env` files; prefer `backend/.env` locally.
+- Use per-branch DB names when doing risky changes.
 
 ### Current Development Phase
 - **Active:** Phase 5 - Polish & Production

@@ -205,3 +205,39 @@ docker run -p 8000:8000 -e FRONTEND_ORIGIN=http://localhost:8000 spy-tracker:tes
 # Verify
 curl -fsS http://localhost:8000/healthz
 ```
+
+## Local development (Postgres, best-practice)
+
+We use Postgres locally for full parity with production.
+
+### Quick start
+1) Start Postgres (Docker):
+```
+docker run --name spydb -d \
+  -e POSTGRES_USER=spy -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=spy \
+  -p 5432:5432 postgres:16
+```
+2) Create `backend/.env`:
+```
+DATABASE_URL=postgresql+psycopg2://spy:pass@localhost:5432/spy
+OPENAI_API_KEY=sk-... # optional
+```
+3) Run backend and frontend:
+```
+# backend
+cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# frontend
+yarn && yarn dev
+```
+4) Verify and seed:
+```
+curl -fsS http://localhost:8000/healthz
+curl -fsS http://localhost:8000/simulation/quick/10 > /dev/null
+curl -fsS "http://localhost:8000/history?limit=10"
+```
+
+### Policies
+- Never commit local `.env` files.
+- Prefer per-branch DB names to isolate experiments.
+- Use Postgres both locally and in prod to avoid drift.
