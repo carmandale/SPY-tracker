@@ -1,0 +1,216 @@
+name: Update CLAUDE.md Documentation
+
+on:
+  # Run weekly on Mondays at 9 AM UTC
+  schedule:
+    - cron: '0 9 * * 1'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      skip_pr:
+        description: 'Skip PR creation and commit directly (not recommended)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  update-claude-md:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for better context
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+        continue-on-error: true  # Continue even if npm ci fails (in case of lockfile issues)
+      
+      - name: Read prompt file
+        id: read-prompt
+        run: |
+          # Read the prompt file and prepare it for Claude
+          echo "Reading prompt from claude-md-review-prompt.md"
+          PROMPT_CONTENT=$(cat .github/workflows/claude-md-review-prompt.md)
+          echo $PROMPT_CONTENT
+          
+          # Save to environment file for multi-line content
+          echo "PROMPT_CONTENT<<EOF" >> $GITHUB_ENV
+          echo "$PROMPT_CONTENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      
+      - name: Generate unique branch name
+        id: branch
+        run: |
+          BRANCH="update-claude-md-$(date +%Y%m%d-%H%M%S)"
+          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Generated branch name: $BRANCH"
+      
+      - name: Create feature branch
+        if: ${{ !inputs.skip_pr }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b ${{ steps.branch.outputs.branch_name }}
+      
+      - name: Run Claude Code to update CLAUDE.md
+        uses: anthropics/claude-code-action@beta
+        id: claude-update
+        with:
+          # Use OAuth token for Pro subscription
+          # You need to generate this token locally with: claude setup-token
+          # Then add it as a repository secret named CLAUDE_CODE_OAUTH_TOKEN
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          
+          # Alternatively, you can use an API key:
+          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          
+          # Set mode to 'agent' for automation workflows
+          mode: agent
+          
+          # The prompt instructs Claude to analyze and update CLAUDE.md
+          direct_prompt: |
+            ${{ env.PROMPT_CONTENT }}
+            
+            Additional instructions:
+            - This is an automated workflow running in GitHub Actions
+            - You have full access to read all files in the repository
+            
+            IMPORTANT: Follow these steps in order:
+            1. FIRST, use the Read tool to read the current CLAUDE.md file at the root of the repository
+            2. THEN systematically analyze the codebase as described above
+            3. FINALLY, use the Edit or MultiEdit tool to update the CLAUDE.md file with your findings
+            
+            - Make sure to preserve any valid existing content that is still accurate
+            - Focus on accuracy and completeness
+            - The updated file should help future Claude Code sessions understand this codebase perfectly
+            - You MUST read files before editing them - this is a requirement
+          
+          # Give Claude enough time to analyze the entire codebase
+          timeout_minutes: 25
+          
+          # Allow multiple conversation turns for thorough analysis
+          max_turns: 30
+      
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet HEAD -- CLAUDE.md; then
+            echo "No changes detected in CLAUDE.md"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected in CLAUDE.md"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            
+            # Show diff for logging
+            echo "::group::CLAUDE.md changes"
+            git diff HEAD -- CLAUDE.md
+            echo "::endgroup::"
+          fi
+      
+      - name: Commit changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          git add CLAUDE.md
+          git commit -m "chore: Update CLAUDE.md documentation
+          
+          Automated update of CLAUDE.md based on current codebase analysis.
+          This ensures the documentation accurately reflects the project structure,
+          dependencies, and conventions.
+          
+          Generated by Claude Code GitHub Action"
+      
+      - name: Push changes and create PR
+        if: steps.check-changes.outputs.has_changes == 'true' && !inputs.skip_pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Push the branch
+          git push origin ${{ steps.branch.outputs.branch_name }}
+          
+          # Create PR using GitHub CLI
+          gh pr create \
+            --title "chore: Update CLAUDE.md documentation (automated)" \
+            --body "## 🤖 Automated CLAUDE.md Update
+
+          This PR contains an automated update to the CLAUDE.md file based on a comprehensive analysis of the current codebase.
+          
+          ### What was done:
+          - Analyzed the entire repository structure
+          - Verified all technical details (versions, commands, paths)
+          - Updated documentation to reflect current state
+          - Removed outdated information
+          - Added any missing important details
+          
+          ### Review checklist:
+          - [ ] Verify the technical accuracy of updates
+          - [ ] Check that no sensitive information was added
+          - [ ] Ensure the documentation is clear and helpful
+          - [ ] Confirm all paths and commands are correct
+          
+          ### How to test:
+          1. Review the diff to ensure changes make sense
+          2. Try using Claude Code with the updated CLAUDE.md
+          3. Verify that the documented commands work
+          
+          ---
+          *This PR was automatically generated by the weekly CLAUDE.md review workflow.*
+          *Workflow run: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*" \
+            --base main \
+            --head ${{ steps.branch.outputs.branch_name }} \
+            --label "documentation" \
+            --label "automated"
+      
+      - name: Direct commit (if skip_pr is true)
+        if: steps.check-changes.outputs.has_changes == 'true' && inputs.skip_pr
+        run: |
+          git push origin main
+          echo "⚠️ Changes committed directly to main branch (skip_pr was enabled)"
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ steps.check-changes.outputs.has_changes }}" == "true" ]]; then
+            echo "✅ **CLAUDE.md was updated successfully**" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ "${{ inputs.skip_pr }}" == "true" ]]; then
+              echo "⚠️ Changes were committed directly to main branch" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "📝 A pull request has been created for review" >> $GITHUB_STEP_SUMMARY
+              echo "Branch: \`${{ steps.branch.outputs.branch_name }}\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "ℹ️ **No updates needed** - CLAUDE.md is already up to date" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Run ID: ${{ github.run_id }}*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Error notification
+        if: failure()
+        run: |
+          echo "## ❌ Workflow Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The CLAUDE.md update workflow encountered an error." >> $GITHUB_STEP_SUMMARY
+          echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
