@@ -95,7 +95,36 @@ jobs:
           
           # The prompt instructs Claude to analyze and update CLAUDE.md
           direct_prompt: |
-            ${{ env.PROMPT_CONTENT }}
+            # Task: Update CLAUDE.md Documentation
+            
+            You are tasked with reviewing and updating the CLAUDE.md file for this SPY TA Tracker repository.
+            
+            ## Your Mission
+            
+            Conduct a comprehensive analysis of the entire codebase and update the CLAUDE.md file to ensure it is 100% accurate, complete, and helpful for future Claude Code interactions.
+            
+            ## Analysis Requirements
+            
+            1. **Project Overview Verification** - Verify the project description accurately reflects this SPY options trading assistant
+            
+            2. **Tech Stack Analysis** - Verify all frameworks and versions by checking:
+               - Frontend: package.json for React, TypeScript, Vite dependencies
+               - Backend: pyproject.toml and requirements.txt for FastAPI, SQLAlchemy versions
+               - Package managers: yarn.lock (frontend) and uv.lock (backend)
+            
+            3. **Commands Verification** - Test and verify all package.json scripts and backend startup commands with uv and uvicorn
+            
+            4. **Architecture & Directory Structure** - Scan the entire directory structure and verify all documented paths exist
+            
+            5. **Feature Analysis** - Document the AI prediction system, option suggestion algorithms, and market data integration
+            
+            ## Output Requirements
+            
+            Create an updated CLAUDE.md file that:
+            1. **Maintains the current structure** but updates all content for accuracy
+            2. **Adds new sections** for any significant findings not currently documented
+            3. **Removes outdated information** that no longer applies
+            4. **Uses clear, concise language** appropriate for AI assistance
             
             Additional instructions:
             - This is an automated workflow running in GitHub Actions
