@@ -69,3 +69,5 @@ venv/
 *.sqlite
 *.sqlite3
 # predictions/
+claude-md-review-prompt.md
+update-claude-md.yml
