@@ -49,9 +49,21 @@ When asked to work on this codebase:
 - **Completed:** Phases 0-4 (Core Day Loop, Suggestions Engine, Performance & Calibration, Data Provider Integration)
 - **Status:** All core MVP features implemented including AI predictions, option suggestions, metrics, and automated data collection
 
+### Key Implemented Features
+- **Morning Predictions:** Form-based entry of low/high predictions with bias, volatility context, and notes
+- **AI Predictions:** GPT-5 powered price predictions with confidence scoring and reasoning
+- **Automated Data Collection:** Scheduled capture of Open/Noon/2PM/Close prices via yfinance
+- **Option Suggestions:** Iron Condor/Butterfly recommendations for 0DTE, 1W, 1M horizons
+- **Performance Tracking:** 20-day rolling metrics, range hit percentage, calibration tips
+- **Historical Analysis:** Complete prediction history with accuracy metrics and trends
+- **Real-time Visualization:** Charts showing predicted bands vs actual price movement
+- **Market Data Integration:** Live SPY pricing, market status, volatility data
+
 ### Key Project Files
 - **Product Requirements:** @SPY-tracker-PRD.md
-- **Backend API:** @backend/app/main.py
-- **Database Models:** @backend/app/models.py
-- **Frontend App:** @src/App.tsx
+- **Backend API:** @backend/app/main.py (comprehensive REST API with 40+ endpoints)
+- **Database Models:** @backend/app/models.py (DailyPrediction, PriceLog, AIPrediction)
+- **Frontend App:** @src/App.tsx (React 19 with TypeScript)
+- **AI System:** @backend/app/ai_predictor.py (GPT-5 integration)
+- **Option Suggestions:** @backend/app/suggestions.py (IC/IB algorithms)
 EOF < /dev/null
