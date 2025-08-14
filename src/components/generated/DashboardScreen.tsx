@@ -121,17 +121,9 @@ export function DashboardScreen() {
             setAiAnalysis(aiData.market_context || null);
             setLocked(true);
             
-            // Update price predictions with proper rounding
-            setKeyTimes(prev => prev.map(item => {
-              const pred = aiData.predictions.find((p: any) => 
-                p.checkpoint.toLowerCase() === item.label.toLowerCase() ||
-                (p.checkpoint === 'twoPM' && item.label === '2:00')
-              );
-              return { 
-                ...item, 
-                price: pred?.predicted_price ? Math.round(pred.predicted_price * 100) / 100 : null 
-              };
-            }));
+            // IMPORTANT: Do NOT populate Key Times with predicted values.
+            // These slots display actuals only as the day unfolds.
+            setKeyTimes(prev => prev.map(item => ({ ...item, price: null })));
           } catch (aiError) {
             // Final fallback: attempt a best-effort create if after 8:00 CST
             try {
