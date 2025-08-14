@@ -943,6 +943,94 @@ def backfill_actuals_for_day(target_date: date, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Backfill failed: {str(e)}")
 
+@app.get("/admin/backfill-actuals/{target_date}")
+def backfill_actuals_for_day_get(target_date: date, db: Session = Depends(get_db)):
+    """GET variant of backfill for convenience."""
+    return backfill_actuals_for_day(target_date, db)
+
+@app.post("/admin/simulate-simple/{num_days}")
+def admin_simulate_simple(num_days: int = Path(..., ge=1, le=60), db: Session = Depends(get_db)):
+    """Generate and persist AI simulation data for the last N trading days (idempotent)."""
+    try:
+        import yfinance as yf
+        from datetime import timedelta
+        from .ai_predictor import AIPredictor
+
+        symbol = settings.symbol
+        predictor = AIPredictor()
+        today = datetime.now().date()
+        start = today - timedelta(days=num_days * 3)
+        spy = yf.Ticker(symbol)
+        hist = spy.history(start=start, end=today + timedelta(days=1), interval="1d")
+        dates = [idx.date() for idx in hist.index if idx.date() <= today][-num_days:]
+
+        saved = []
+        for d in dates:
+            # Generate predictions
+            day_preds = predictor.generate_predictions(d, lookback_days=settings.ai_lookback_days)
+            row = hist.loc[hist.index.date == d]
+            if row.empty:
+                continue
+            r = row.iloc[0]
+            actuals = {
+                "open": float(r.Open),
+                "noon": float((r.High + r.Low) / 2.0),
+                "twoPM": float(r.High * 0.3 + r.Low * 0.7),
+                "close": float(r.Close),
+            }
+            # Upsert DailyPrediction
+            pred = db.query(DailyPrediction).filter(DailyPrediction.date == d).first()
+            if pred is None:
+                pred = DailyPrediction(date=d)
+                db.add(pred)
+            prices = [p.predicted_price for p in day_preds.predictions]
+            if prices:
+                pred.predLow = min(prices)
+                pred.predHigh = max(prices)
+            pred.source = "ai_simulation"
+            pred.locked = True
+            pred.open = actuals["open"]
+            pred.noon = actuals["noon"]
+            pred.twoPM = actuals["twoPM"]
+            pred.close = actuals["close"]
+            _update_derived_fields(pred)
+
+            # Upsert AIPrediction per checkpoint
+            for p in day_preds.predictions:
+                existing = db.query(AIPrediction).filter(
+                    AIPrediction.date == d,
+                    AIPrediction.checkpoint == p.checkpoint,
+                ).first()
+                if existing:
+                    existing.actual_price = actuals.get(p.checkpoint)
+                    existing.prediction_error = (
+                        abs(p.predicted_price - existing.actual_price)
+                        if existing.actual_price is not None else None
+                    )
+                    if not (existing.market_context or '').startswith('[SIMULATION]'):
+                        existing.market_context = f"[SIMULATION] {day_preds.market_context}"
+                    db.add(existing)
+                else:
+                    db.add(AIPrediction(
+                        date=d,
+                        checkpoint=p.checkpoint,
+                        predicted_price=p.predicted_price,
+                        confidence=p.confidence,
+                        reasoning=f"[SIM] {p.reasoning}",
+                        market_context=f"[SIMULATION] {day_preds.market_context}",
+                        actual_price=actuals.get(p.checkpoint),
+                        prediction_error=(
+                            abs(p.predicted_price - actuals.get(p.checkpoint))
+                            if actuals.get(p.checkpoint) is not None else None
+                        ),
+                    ))
+            db.commit()
+            saved.append(d.isoformat())
+
+        return {"status": "success", "saved_dates": saved, "count": len(saved)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
 @app.post("/admin/fix-duplicate-ai-predictions")
 def fix_duplicate_ai_predictions(db: Session = Depends(get_db)):
     """Run the AI prediction deduplication migration."""
