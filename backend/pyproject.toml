@@ -19,6 +19,7 @@ dependencies = [
   "typing-extensions>=4.14.1",
   "click>=8.2.1",
   "pandas>=2.3.1",
+  "psycopg2-binary>=2.9,<2.10",
 ]
 
 [tool.uv]
