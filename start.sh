@@ -24,6 +24,45 @@ if [ -f .env.local ]; then
     set +a  # turn off auto-export
 fi
 
+# Also load backend/.env if present (commonly used for DATABASE_URL)
+if [ -f backend/.env ]; then
+    echo "📋 Loading backend environment from backend/.env"
+    set -a
+    source backend/.env
+    set +a
+fi
+
+# Ensure local Postgres is available for dev if DATABASE_URL points to localhost or is unset
+DEFAULT_DB_URL="postgresql+psycopg2://spy:pass@localhost:5432/spy"
+if [ -z "${DATABASE_URL}" ]; then
+    export DATABASE_URL="$DEFAULT_DB_URL"
+fi
+
+# Auto-start a local Postgres container named 'spydb' when using localhost and Docker is available
+if echo "$DATABASE_URL" | grep -q "localhost:5432"; then
+    if command -v docker >/dev/null 2>&1; then
+        if ! docker info >/dev/null 2>&1; then
+            echo "⚠️  Docker is installed but not running; skipping auto-start of Postgres."
+        else
+            if [ -z "$(docker ps -q -f name=^/spydb$)" ]; then
+                if [ -z "$(docker ps -aq -f name=^/spydb$)" ]; then
+                    echo "🐘 Starting local Postgres container 'spydb' (first run)..."
+                    docker run --name spydb -d \
+                      -e POSTGRES_USER=spy -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=spy \
+                      -p 5432:5432 postgres:16 >/dev/null
+                else
+                    echo "🐘 Starting existing Postgres container 'spydb'..."
+                    docker start spydb >/dev/null
+                fi
+            else
+                echo "🐘 Local Postgres container 'spydb' already running."
+            fi
+        fi
+    else
+        echo "ℹ️  Docker not found; assuming Postgres is provided externally at $DATABASE_URL"
+    fi
+fi
+
 # Get ports from environment or use defaults
 BACKEND_PORT=${API_PORT:-8000}
 FRONTEND_PORT=${PORT:-3000}
