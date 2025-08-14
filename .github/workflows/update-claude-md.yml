@@ -91,7 +91,8 @@ jobs:
         uses: anthropics/claude-code-action@beta
         id: claude-update
         with:
-          # GitHub App handles authentication automatically
+          # Use GitHub App authentication
+          use_github_app: true
           mode: agent
           
           # The prompt instructs Claude to analyze and update CLAUDE.md
