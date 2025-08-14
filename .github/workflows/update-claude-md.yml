@@ -61,13 +61,23 @@ jobs:
         run: |
           # Read the prompt file and prepare it for Claude
           echo "Reading prompt from .github/prompts/claude-md-review-prompt.md"
+          
+          # Check if file exists first
+          if [[ ! -f ".github/prompts/claude-md-review-prompt.md" ]]; then
+            echo "::error::Prompt file not found at .github/prompts/claude-md-review-prompt.md"
+            exit 1
+          fi
+          
+          # Read the file content
           PROMPT_CONTENT=$(cat .github/prompts/claude-md-review-prompt.md)
-          echo $PROMPT_CONTENT
+          echo "Prompt file read successfully (${#PROMPT_CONTENT} characters)"
           
           # Save to environment file for multi-line content
-          echo "PROMPT_CONTENT<<EOF" >> $GITHUB_ENV
-          echo "$PROMPT_CONTENT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "PROMPT_CONTENT<<EOF"
+            cat .github/prompts/claude-md-review-prompt.md
+            echo "EOF"
+          } >> $GITHUB_ENV
       
       - name: Generate unique branch name
         id: branch
