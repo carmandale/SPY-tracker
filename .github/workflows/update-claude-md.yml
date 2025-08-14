@@ -68,16 +68,12 @@ jobs:
             exit 1
           fi
           
-          # Read the file content
-          PROMPT_CONTENT=$(cat .github/prompts/claude-md-review-prompt.md)
-          echo "Prompt file read successfully (${#PROMPT_CONTENT} characters)"
+          # Read the file content and base64 encode it to avoid delimiter issues
+          PROMPT_CONTENT_B64=$(cat .github/prompts/claude-md-review-prompt.md | base64 -w 0)
+          echo "Prompt file read successfully and encoded"
           
-          # Save to environment file for multi-line content using a unique delimiter
-          {
-            echo "PROMPT_CONTENT<<CLAUDE_PROMPT_END"
-            cat .github/prompts/claude-md-review-prompt.md
-            echo "CLAUDE_PROMPT_END"
-          } >> $GITHUB_ENV
+          # Save base64 encoded content to environment
+          echo "PROMPT_CONTENT_B64=${PROMPT_CONTENT_B64}" >> $GITHUB_ENV
       
       - name: Generate unique branch name
         id: branch
