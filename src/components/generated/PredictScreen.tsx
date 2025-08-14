@@ -34,6 +34,8 @@ type DayResponse = {
   locked?: boolean | null;
   volCtx?: string | null;
   notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 function formatDateCST(d: Date) {
@@ -48,6 +50,13 @@ export function PredictScreen() {
   const [aiPreview, setAiPreview] = useState<AIDayPreview | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [lookbackDays, setLookbackDays] = useState<number>(5);
+  const formatCSTDateTime = (iso?: string | null) => {
+    if (!iso) return null;
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('en-US', { timeZone: 'America/Chicago' });
+    } catch { return null; }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -119,6 +128,21 @@ export function PredictScreen() {
         <div>
           <h2 className="text-xl font-semibold text-[#E8ECF2]">AI Prediction</h2>
           <p className="text-sm text-[#A7B3C5]">{today} (CST)</p>
+            {lockedDay && (lockedDay.created_at || lockedDay.updated_at) && (
+              <p className="text-xs text-[#A7B3C5]/80 mt-1">
+                {lockedDay.created_at && (
+                  <>
+                    Created at {formatCSTDateTime(lockedDay.created_at)}
+                  </>
+                )}
+                {lockedDay.created_at && lockedDay.updated_at && ' · '}
+                {lockedDay.updated_at && (
+                  <>
+                    Last updated {formatCSTDateTime(lockedDay.updated_at)}
+                  </>
+                )}
+              </p>
+            )}
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm text-[#A7B3C5]">Lookback</label>
