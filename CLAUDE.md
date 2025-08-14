@@ -41,12 +41,13 @@ When asked to work on this codebase:
 
 ### Development Servers
 - **Frontend:** Port 3000 - `yarn dev`
-- **Backend:** Port 8000 - `cd backend && uvicorn app.main:app --reload`
+- **Backend:** Port 8000 - `cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000`
 
 ### Current Development Phase
-- **Active:** Phase 1 - Core Day Loop (MVP Target)
-- **Focus:** Morning predictions and automated price tracking
-- **Next:** Phase 2 - Suggestions Engine
+- **Active:** Phase 5 - Polish & Production
+- **Focus:** Production-ready application with error handling, performance optimization, and deployment configuration
+- **Completed:** Phases 0-4 (Core Day Loop, Suggestions Engine, Performance & Calibration, Data Provider Integration)
+- **Status:** All core MVP features implemented including AI predictions, option suggestions, metrics, and automated data collection
 
 ### Key Project Files
 - **Product Requirements:** @SPY-tracker-PRD.md
