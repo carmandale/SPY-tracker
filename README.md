@@ -238,6 +238,18 @@ curl -fsS "http://localhost:8000/history?limit=10"
 ```
 
 ### Policies
+- Compose parity (optional)
+```
+# Run DB only
+docker compose up -d db
+
+# Full stack using prod image (API serves SPA)
+docker compose --profile full up --build
+
+# Tools
+open http://localhost:8080   # Adminer
+curl -fsS http://localhost:8000/healthz
+```
 - Never commit local `.env` files.
 - Prefer per-branch DB names to isolate experiments.
 - Use Postgres both locally and in prod to avoid drift.
