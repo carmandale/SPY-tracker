@@ -24,6 +24,9 @@ if [ -f .env.local ]; then
     set +a  # turn off auto-export
 fi
 
+# Force frontend API base to same-origin in dev so Vite proxy handles API (avoids CORS/IPv6 issues)
+export VITE_API_URL="/"
+
 # Also load backend/.env if present (commonly used for DATABASE_URL)
 if [ -f backend/.env ]; then
     echo "📋 Loading backend environment from backend/.env"
@@ -32,14 +35,14 @@ if [ -f backend/.env ]; then
     set +a
 fi
 
-# Ensure local Postgres is available for dev if DATABASE_URL points to localhost or is unset
-DEFAULT_DB_URL="postgresql+psycopg2://spy:pass@localhost:5432/spy"
-if [ -z "${DATABASE_URL}" ]; then
-    export DATABASE_URL="$DEFAULT_DB_URL"
-fi
+# Ensure local Postgres is used for dev
+# Use 5433 on host to avoid conflicts with any host Postgres
+DEFAULT_DB_URL="postgresql+psycopg2://spy:pass@127.0.0.1:5433/spy"
+export DATABASE_URL="$DEFAULT_DB_URL"
+echo "🧩 Using dev DATABASE_URL=$DATABASE_URL"
 
 # Auto-start a local Postgres container named 'spydb' when using localhost and Docker is available
-if echo "$DATABASE_URL" | grep -q "localhost:5432"; then
+if echo "$DATABASE_URL" | grep -qE "127\.0\.0\.1:5433|localhost:5433"; then
     if command -v docker >/dev/null 2>&1; then
         if ! docker info >/dev/null 2>&1; then
             echo "⚠️  Docker is installed but not running; skipping auto-start of Postgres."
@@ -49,7 +52,7 @@ if echo "$DATABASE_URL" | grep -q "localhost:5432"; then
                     echo "🐘 Starting local Postgres container 'spydb' (first run)..."
                     docker run --name spydb -d \
                       -e POSTGRES_USER=spy -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=spy \
-                      -p 5432:5432 postgres:16 >/dev/null
+                      -p 5433:5432 postgres:16 >/dev/null
                 else
                     echo "🐘 Starting existing Postgres container 'spydb'..."
                     docker start spydb >/dev/null
@@ -84,13 +87,13 @@ if [ -d "backend" ]; then
         source .venv/bin/activate
     fi
     
-    # Install/update dependencies if requirements files exist
-    if [ -f "requirements.txt" ]; then
-        echo "   Installing/updating Python dependencies..."
+    # Install/update dependencies (prefer pyproject via uv)
+    if [ -f "pyproject.toml" ]; then
+        echo "   Installing/updating Python dependencies from pyproject.toml..."
+        uv pip install -r pyproject.toml
+    elif [ -f "requirements.txt" ]; then
+        echo "   Installing/updating Python dependencies from requirements.txt..."
         uv pip install -r requirements.txt
-    elif [ -f "pyproject.toml" ]; then
-        echo "   Installing/updating Python dependencies..."
-        uv pip sync pyproject.toml
     fi
     
     # Start backend server in background

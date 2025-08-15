@@ -24,6 +24,7 @@ from .schemas import (
 from .scheduler import start_scheduler
 from .suggestions import generate_suggestions
 from .pl_calculations import pl_calculator, PLData
+from .capture import refresh_actuals_for_date
 from .exceptions import (
     SPYTrackerException,
     DataNotFoundException,
@@ -178,6 +179,13 @@ def create_or_update_prediction_by_date(
 
 @app.get("/day/{day}", response_model=DailyPredictionRead)
 def get_day(day: date, db: Session = Depends(get_db)):
+    # Lazy refresh for today to eagerly fill missing actuals
+    try:
+        if day == date.today():
+            refresh_actuals_for_date(db, day)
+    except Exception:
+        pass
+
     pred = db.query(DailyPrediction).filter(DailyPrediction.date == day).first()
     if pred is None:
         raise DataNotFoundException(
@@ -708,7 +716,14 @@ from .config import settings
 
 @app.get("/ai/predictions/{target_date}")
 def get_ai_predictions_endpoint(target_date: date, db: Session = Depends(get_db)):
-    """Generate or retrieve AI predictions for a specific date."""
+    """Generate or retrieve AI predictions for a specific date.
+    Eagerly attempts to fill today's actuals before returning.
+    """
+    try:
+        if target_date == date.today():
+            refresh_actuals_for_date(db, target_date)
+    except Exception:
+        pass
     return get_ai_predictions_for_date(target_date, db)
 
 @app.get("/ai/accuracy")  
@@ -942,6 +957,34 @@ def backfill_actuals_for_day(target_date: date, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Backfill failed: {str(e)}")
+
+
+@app.post("/admin/refresh-actuals-intraday/{target_date}")
+def refresh_actuals_intraday(target_date: date, force: bool = False, db: Session = Depends(get_db)):
+    """Recompute actuals for a date from 1‑minute bars, optionally overwriting existing values."""
+    try:
+        filled = refresh_actuals_for_date(db, target_date, force=force)
+        return {"status": "success", "filled": filled, "force": force, "date": target_date}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Refresh failed: {str(e)}")
+
+
+@app.post("/admin/refresh-actuals-intraday-range")
+def refresh_actuals_intraday_range(start_date: date, end_date: date, force: bool = False, db: Session = Depends(get_db)):
+    """Recompute actuals for a date range from 1‑minute bars."""
+    try:
+        if start_date > end_date:
+            raise HTTPException(status_code=400, detail="start_date must be <= end_date")
+        results = []
+        d = start_date
+        while d <= end_date:
+            results.append({"date": d, "filled": refresh_actuals_for_date(db, d, force=force)})
+            d = date.fromordinal(d.toordinal() + 1)
+        return {"status": "success", "results": results, "force": force}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Refresh range failed: {str(e)}")
 
 @app.get("/admin/backfill-actuals/{target_date}")
 def backfill_actuals_for_day_get(target_date: date, db: Session = Depends(get_db)):

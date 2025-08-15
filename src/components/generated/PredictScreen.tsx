@@ -50,6 +50,7 @@ export function PredictScreen() {
   const [aiPreview, setAiPreview] = useState<AIDayPreview | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [lookbackDays, setLookbackDays] = useState<number>(5);
+  const [marketOpen, setMarketOpen] = useState<boolean | null>(null);
   const formatCSTDateTime = (iso?: string | null) => {
     if (!iso) return null;
     try {
@@ -86,6 +87,23 @@ export function PredictScreen() {
     };
     load();
   }, [today]);
+
+  // Poll market status (open/closed) every 60s
+  useEffect(() => {
+    let cancelled = false;
+    let timer: any;
+    const fetchStatus = async () => {
+      try {
+        const { market_open } = await api.getMarketStatus();
+        if (!cancelled) setMarketOpen(Boolean(market_open));
+      } catch {
+        if (!cancelled) setMarketOpen(null);
+      }
+    };
+    fetchStatus();
+    timer = setInterval(fetchStatus, 60000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
 
   const createAndLock = async () => {
     setSubmitting(true);
@@ -145,6 +163,13 @@ export function PredictScreen() {
             )}
         </div>
         <div className="flex items-center gap-2">
+          {marketOpen === null ? (
+            <span className="px-2 py-1 bg-white/5 text-[#A7B3C5] text-xs rounded-full">Checking market…</span>
+          ) : marketOpen ? (
+            <span className="px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">Market open</span>
+          ) : (
+            <span className="px-2 py-1 bg-slate-600/10 text-slate-300 text-xs rounded-full font-medium">Market closed</span>
+          )}
           <label className="text-sm text-[#A7B3C5]">Lookback</label>
           <select
             className="border border-white/8 rounded px-2 py-1 text-sm bg-[#12161D] text-[#E8ECF2]"

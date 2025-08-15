@@ -6,7 +6,7 @@ import { parseAPIError, retryWithBackoff } from './errorHandling';
 
 function resolveApiBaseUrl(): string {
   // Prefer injected env var when valid and complete
-  const raw = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  const raw = (import.meta as unknown as { env?: Record<string, unknown> }).env?.VITE_API_URL as string | undefined;
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   // Empty, '/', or clearly invalid → same-origin
@@ -34,6 +34,31 @@ export interface RequestOptions {
   body?: string;
   headers?: Record<string, string>;
 }
+
+// Simple API response shapes used by the client
+type JsonObject = Record<string, unknown>;
+
+export interface DayResponse {
+  date: string;
+  predLow?: number | null;
+  predHigh?: number | null;
+  open?: number | null;
+  noon?: number | null;
+  twoPM?: number | null;
+  close?: number | null;
+  source?: string | null;
+  locked?: boolean | null;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+type SuggestionsResponse = JsonObject;
+type MetricsResponse = JsonObject;
+type HistoryResponse = JsonObject;
+type MarketDataResponse = JsonObject;
+type MarketStatusResponse = { market_open: boolean } & JsonObject;
+type AIPredictionsResponse = JsonObject;
 
 /**
  * Make an optimized API request with caching and error handling
@@ -124,11 +149,11 @@ export async function prefetchEndpoints(endpoints: string[]): Promise<void> {
 export const api = {
   // Predictions
   async getPrediction(date: string) {
-    return apiRequest<any>(`/day/${date}`);
+    return apiRequest<DayResponse>(`/day/${date}`);
   },
 
-  async createPrediction(date: string, data: any) {
-    return apiRequest<any>(`/prediction/${date}`, {
+  async createPrediction(date: string, data: JsonObject) {
+    return apiRequest<JsonObject>(`/prediction/${date}`, {
       method: 'POST',
       body: JSON.stringify(data),
       cache: false,
@@ -136,8 +161,8 @@ export const api = {
   },
 
   // Price logging
-  async logPrice(checkpoint: string, data: any) {
-    return apiRequest<any>(`/capture/${data.date}`, {
+  async logPrice(checkpoint: string, data: { date: string; price: number }) {
+    return apiRequest<JsonObject>(`/capture/${data.date}`, {
       method: 'POST',
       body: JSON.stringify({ checkpoint, price: data.price }),
       cache: false,
@@ -146,53 +171,53 @@ export const api = {
 
   // Suggestions
   async getSuggestions(date: string) {
-    return apiRequest<any>(`/suggestions/${date}`, {
+    return apiRequest<SuggestionsResponse>(`/suggestions/${date}`, {
       cacheTTL: 300000, // Cache for 5 minutes
     });
   },
 
   async getSuggestionsPLData(date: string) {
-    return apiRequest<any>(`/suggestions/${date}/pl-data`, {
+    return apiRequest<JsonObject>(`/suggestions/${date}/pl-data`, {
       cacheTTL: 180000, // Cache for 3 minutes
     });
   },
 
   // Metrics
   async getMetrics() {
-    return apiRequest<any>('/metrics', {
+    return apiRequest<MetricsResponse>('/metrics', {
       cacheTTL: 120000, // Cache for 2 minutes
     });
   },
 
   // History
   async getHistory(limit = 20, offset = 0) {
-    return apiRequest<any>(`/history?limit=${limit}&offset=${offset}`, {
+    return apiRequest<HistoryResponse>(`/history?limit=${limit}&offset=${offset}`, {
       cacheTTL: 180000, // Cache for 3 minutes
     });
   },
 
   // Market data
   async getMarketData(symbol = 'SPY') {
-    return apiRequest<any>(`/market-data/${symbol}`, {
+    return apiRequest<MarketDataResponse>(`/market-data/${symbol}`, {
       cacheTTL: 30000, // Cache for 30 seconds
     });
   },
 
   async getMarketStatus() {
-    return apiRequest<any>('/market-status', {
+    return apiRequest<MarketStatusResponse>('/market-status', {
       cacheTTL: 30000, // Cache for 30 seconds
     });
   },
 
   // AI Predictions
   async getAIPredictions(date: string) {
-    return apiRequest<any>(`/ai/predictions/${date}`, {
+    return apiRequest<AIPredictionsResponse>(`/ai/predictions/${date}`, {
       cacheTTL: 300000, // Cache for 5 minutes
     });
   },
 
   async createAIPrediction(date: string, lookbackDays?: number) {
-    return apiRequest<any>(`/ai/predict/${date}`, {
+    return apiRequest<JsonObject>(`/ai/predict/${date}`, {
       method: 'POST',
       body: lookbackDays ? JSON.stringify({ lookbackDays }) : undefined,
       cache: false,
@@ -200,7 +225,7 @@ export const api = {
   },
 
   async getAIAccuracy() {
-    return apiRequest<any>('/ai/accuracy', {
+    return apiRequest<JsonObject>('/ai/accuracy', {
       cacheTTL: 300000, // Cache for 5 minutes
     });
   },
