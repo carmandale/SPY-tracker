@@ -6,6 +6,10 @@ services:
       - POSTGRES_USER=spy
       - POSTGRES_PASSWORD=pass
       - POSTGRES_DB=spy
+      # Performance tuning for development
+      - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements
+      - POSTGRES_LOG_STATEMENT=all
+      - POSTGRES_LOG_MIN_DURATION_STATEMENT=100
     ports:
       - "5433:5432"
     healthcheck:
@@ -13,9 +17,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      # Add configuration overrides for development
+      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    restart: unless-stopped
 
   adminer:
     image: adminer:latest
@@ -26,6 +35,27 @@ services:
       db:
         condition: service_healthy
     profiles: ["tools"]
+
+  test-db:
+    image: postgres:16
+    container_name: spydb-test
+    environment:
+      - POSTGRES_USER=spy
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=spy_test
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spy -d spy_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    profiles: ["test"]
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for faster test database
 
   app:
     build:
@@ -45,4 +75,5 @@ services:
 
 volumes:
   db_data:
+  test_db_data:
 
