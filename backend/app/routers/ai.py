@@ -5,11 +5,16 @@ Handles GPT-powered predictions, historical simulations, and accuracy metrics.
 
 from datetime import date, datetime
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Body, Path
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..config import settings
+from ..exceptions import DataNotFoundException, ValidationException
+
+# Set up logging
+logger = logging.getLogger(__name__)
 from ..capture import refresh_actuals_for_date
 from ..ai_endpoints import (
     get_ai_predictions_for_date,
@@ -31,15 +36,33 @@ def get_ai_predictions_endpoint(target_date: date, db: Session = Depends(get_db)
     try:
         if target_date == date.today():
             refresh_actuals_for_date(db, target_date)
-    except Exception:
-        pass
-    return get_ai_predictions_for_date(target_date, db)
+    except Exception as e:
+        logger.warning(f"Could not refresh actuals for {target_date}: {e}")
+    
+    try:
+        return get_ai_predictions_for_date(target_date, db)
+    except DataNotFoundException as e:
+        logger.warning(f"No AI predictions found for {target_date}")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get AI predictions for {target_date}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Failed to retrieve AI predictions", "date": target_date.isoformat(), "reason": str(e)}
+        )
 
 
 @router.get("/ai/accuracy")  
 def get_ai_accuracy_endpoint(db: Session = Depends(get_db)):
     """Get AI prediction accuracy metrics."""
-    return get_ai_accuracy_metrics(db)
+    try:
+        return get_ai_accuracy_metrics(db)
+    except Exception as e:
+        logger.error(f"Failed to get AI accuracy metrics: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Failed to calculate accuracy metrics", "reason": str(e)}
+        )
 
 
 @router.get("/ai/demo/{target_date}")
@@ -63,7 +86,18 @@ def ai_predict_create(
     """Create AI prediction for a date and lock the day (create-only)."""
     if lookbackDays is None:
         lookbackDays = settings.ai_lookback_days
-    return create_ai_prediction_for_date(target_date, lookbackDays, db)
+    
+    try:
+        return create_ai_prediction_for_date(target_date, lookbackDays, db)
+    except ValidationException as e:
+        logger.warning(f"Validation error creating AI prediction for {target_date}: {e.message}")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create AI prediction for {target_date}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Failed to create AI prediction", "date": target_date.isoformat(), "reason": str(e)}
+        )
 
 
 # Historical Simulation Endpoints
@@ -136,8 +170,18 @@ def run_historical_simulation(
             "results": simulation_data
         }
         
+    except ValidationException as e:
+        logger.warning(f"Simulation validation error: {e.message}")
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "Invalid simulation parameters", "reason": e.message, "details": e.details}
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+        logger.error(f"Simulation failed for {num_days} days ending {end_date}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Simulation failed", "reason": str(e), "parameters": {"end_date": end_date.isoformat(), "num_days": num_days}}
+        )
 
 
 @router.get("/simulation/quick/{num_days}")
@@ -189,4 +233,13 @@ def get_accuracy_metrics(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Accuracy calculation failed: {str(e)}")
+        logger.error(f"Accuracy calculation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Accuracy calculation failed", "reason": str(e), "filters": {
+                "start_date": start_date.isoformat() if start_date else None,
+                "end_date": end_date.isoformat() if end_date else None,
+                "model_name": model_name,
+                "checkpoint": checkpoint
+            }}
+        )

@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 import json
 import os
+import logging
 
 import pandas as pd
 import yfinance as yf
@@ -17,6 +18,9 @@ from .config import settings
 from .providers import default_provider
 from .timezone_utils import ET, get_checkpoint_datetime
 from .baseline_model import baseline_predictor
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 # Prompt version for tracking changes
@@ -57,7 +61,7 @@ class AIPredictor:
             self.client = OpenAI(api_key=self.api_key)
         else:
             self.client = None
-            print("⚠️  OpenAI API key not configured - AI predictions unavailable")
+            logger.warning("OpenAI API key not configured - AI predictions unavailable")
         self.symbol = settings.symbol
     
     def generate_predictions(self, target_date: date, lookback_days: int = 5) -> DayPredictions:
@@ -275,7 +279,7 @@ Provide predictions in this exact JSON format:
             max_tokens = settings.openai_max_completion_tokens
             reasoning_effort = settings.openai_reasoning_effort
 
-            print(f"🤖 Using {model} (chat.completions) for SPY predictions...")
+            logger.info(f"Using {model} (chat.completions) for SPY predictions")
 
             try:
                 api_params = {
@@ -307,12 +311,11 @@ Provide predictions in this exact JSON format:
             # Token usage logging (best-effort)
             try:
                 u = response.usage
-                print("📊 Token Usage:")
-                print(f"   - prompt: {getattr(u, 'prompt_tokens', None)}")
-                print(f"   - completion: {getattr(u, 'completion_tokens', None)}")
-                print(f"   - total: {getattr(u, 'total_tokens', None)}")
-            except Exception:
-                pass
+                logger.debug(f"Token usage - prompt: {getattr(u, 'prompt_tokens', None)}, "
+                           f"completion: {getattr(u, 'completion_tokens', None)}, "
+                           f"total: {getattr(u, 'total_tokens', None)}")
+            except Exception as e:
+                logger.debug(f"Could not log token usage: {e}")
 
             raw_content = None
             # Prefer tool JSON if tool-choosing happened, else message.content
@@ -345,7 +348,7 @@ Provide predictions in this exact JSON format:
             # Extract analysis if present
             analysis = prediction_data.pop("analysis", "No detailed analysis provided")
             sentiment = prediction_data.pop("sentiment", None)
-            print(f"📝 Analysis extracted: {analysis[:100]}..." if len(analysis) > 100 else f"📝 Analysis: {analysis}")
+            logger.debug(f"Analysis extracted: {analysis[:100]}..." if len(analysis) > 100 else f"Analysis: {analysis}")
 
             # Convert to PricePrediction objects
             predictions = []
@@ -381,9 +384,7 @@ Provide predictions in this exact JSON format:
             
         except Exception as e:
             # Fallback to improved baseline predictions if AI fails
-            print(f"❌ AI prediction failed: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"AI prediction failed: {e}", exc_info=True)
             return self._fallback_predictions(context)
     
     def _fallback_predictions(self, context: Dict) -> List[PricePrediction]:
@@ -418,10 +419,13 @@ Provide predictions in this exact JSON format:
             ]
         except Exception as e:
             # If even the baseline model fails, use a very simple fallback
-            print(f"❌ Baseline fallback also failed: {e}")
+            logger.error(f"Baseline fallback also failed: {e}", exc_info=True)
             
-            # Ultra-simple fallback
-            base_price = context.get('pre_market_price') or context.get('previous_close', 580.0)
+            # Ultra-simple fallback - use actual market data or raise error
+            base_price = context.get('pre_market_price') or context.get('previous_close')
+            if not base_price:
+                logger.critical("Cannot generate predictions without base price data")
+                raise ValueError("Cannot generate predictions without base price data")
             volatility = context.get('annualized_volatility', 0.15) / 252**0.5  # Daily vol
             
             # Simple width calculation
