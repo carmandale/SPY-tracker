@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
+from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -15,22 +16,39 @@ from .ai_endpoints import create_ai_prediction_for_date
 AI_PREDICTION_CRON = "0 8 * * 1-5"
 
 
-def capture_price(db: Session, checkpoint: str) -> None:
-    tz = ZoneInfo(settings.timezone)
-    now_local = datetime.now(tz)
-    # Use official OHLC prices instead of current price
-    price = default_provider.get_official_price(settings.symbol, checkpoint)
+def capture_price(db: Session, checkpoint: str, target_date: Optional[date] = None) -> None:
+    """Capture official price for a specific checkpoint on a target date.
+    
+    Args:
+        db: Database session
+        checkpoint: Price checkpoint ('preMarket', 'open', 'noon', 'twoPM', 'close')
+        target_date: Target date for price capture (defaults to today in local timezone)
+    """
+    # Determine target date - use provided date or current local date
+    if target_date is None:
+        tz = ZoneInfo(settings.timezone)
+        target_date = datetime.now(tz).date()
+    
+    # Get official price using enhanced provider method
+    price = default_provider.get_official_checkpoint_price(settings.symbol, checkpoint, target_date)
+    
+    # Validate the price before storing
     if price is None:
+        print(f"⚠️  No official price available for {settings.symbol} {checkpoint} on {target_date}")
+        return
+    
+    if not default_provider.validate_official_price(price, settings.symbol, checkpoint):
+        print(f"⚠️  Invalid official price {price} for {settings.symbol} {checkpoint} on {target_date}")
         return
 
-    # Upsert DailyPrediction row for the date
-    pred = db.query(DailyPrediction).filter(DailyPrediction.date == now_local.date()).first()
+    # Upsert DailyPrediction row for the target date
+    pred = db.query(DailyPrediction).filter(DailyPrediction.date == target_date).first()
     if pred is None:
-        pred = DailyPrediction(date=now_local.date())
+        pred = DailyPrediction(date=target_date)
         db.add(pred)
         db.flush()
 
-    # Set checkpoint field if exists
+    # Set checkpoint field based on checkpoint type
     if checkpoint == "preMarket":
         pred.preMarket = price
     elif checkpoint == "open":
@@ -41,9 +59,18 @@ def capture_price(db: Session, checkpoint: str) -> None:
         pred.twoPM = price
     elif checkpoint == "close":
         pred.close = price
+    else:
+        print(f"⚠️  Unknown checkpoint: {checkpoint}")
+        return
 
-    db.add(PriceLog(date=now_local.date(), checkpoint=checkpoint, price=price))
+    # Log the price capture for audit trail
+    db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
+    
+    # Commit changes to database
     db.commit()
+    
+    # Enhanced logging for monitoring
+    print(f"✅ Captured official {checkpoint} price ${price:.2f} for {settings.symbol} on {target_date}")
 
 
 def start_scheduler(get_db_session_callable):
