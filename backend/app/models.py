@@ -63,6 +63,7 @@ class AIPrediction(Base):
     # Source tracking
     source = Column(String, nullable=True)  # 'llm', 'baseline', 'ensemble'
     model = Column(String, nullable=True)  # Model name/version if applicable
+    prompt_version = Column(String, nullable=True)  # Track prompt version for reproducibility
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

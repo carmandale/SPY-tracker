@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
+from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .providers import default_provider
-from .models import DailyPrediction, PriceLog
+from .models import DailyPrediction, PriceLog, AIPrediction
 from .ai_endpoints import create_ai_prediction_for_date
 
 
@@ -15,21 +16,39 @@ from .ai_endpoints import create_ai_prediction_for_date
 AI_PREDICTION_CRON = "0 8 * * 1-5"
 
 
-def capture_price(db: Session, checkpoint: str) -> None:
-    tz = ZoneInfo(settings.timezone)
-    now_local = datetime.now(tz)
-    price = default_provider.get_price(settings.symbol)
+def capture_price(db: Session, checkpoint: str, target_date: Optional[date] = None) -> None:
+    """Capture official price for a specific checkpoint on a target date.
+    
+    Args:
+        db: Database session
+        checkpoint: Price checkpoint ('preMarket', 'open', 'noon', 'twoPM', 'close')
+        target_date: Target date for price capture (defaults to today in local timezone)
+    """
+    # Determine target date - use provided date or current local date
+    if target_date is None:
+        tz = ZoneInfo(settings.timezone)
+        target_date = datetime.now(tz).date()
+    
+    # Get official price using enhanced provider method
+    price = default_provider.get_official_checkpoint_price(settings.symbol, checkpoint, target_date)
+    
+    # Validate the price before storing
     if price is None:
+        print(f"⚠️  No official price available for {settings.symbol} {checkpoint} on {target_date}")
+        return
+    
+    if not default_provider.validate_official_price(price, settings.symbol, checkpoint):
+        print(f"⚠️  Invalid official price {price} for {settings.symbol} {checkpoint} on {target_date}")
         return
 
-    # Upsert DailyPrediction row for the date
-    pred = db.query(DailyPrediction).filter(DailyPrediction.date == now_local.date()).first()
+    # Upsert DailyPrediction row for the target date
+    pred = db.query(DailyPrediction).filter(DailyPrediction.date == target_date).first()
     if pred is None:
-        pred = DailyPrediction(date=now_local.date())
+        pred = DailyPrediction(date=target_date)
         db.add(pred)
         db.flush()
 
-    # Set checkpoint field if exists
+    # Set checkpoint field based on checkpoint type
     if checkpoint == "preMarket":
         pred.preMarket = price
     elif checkpoint == "open":
@@ -40,9 +59,18 @@ def capture_price(db: Session, checkpoint: str) -> None:
         pred.twoPM = price
     elif checkpoint == "close":
         pred.close = price
+    else:
+        print(f"⚠️  Unknown checkpoint: {checkpoint}")
+        return
 
-    db.add(PriceLog(date=now_local.date(), checkpoint=checkpoint, price=price))
+    # Log the price capture for audit trail
+    db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
+    
+    # Commit changes to database
     db.commit()
+    
+    # Enhanced logging for monitoring
+    print(f"✅ Captured official {checkpoint} price ${price:.2f} for {settings.symbol} on {target_date}")
 
 
 def start_scheduler(get_db_session_callable):
@@ -102,6 +130,15 @@ def start_scheduler(get_db_session_callable):
         replace_existing=True,
         max_instances=1,
     )
+    
+    # Daily cleanup at midnight CST
+    scheduler.add_job(
+        lambda: _run_daily_cleanup(get_db_session_callable),
+        CronTrigger.from_crontab("0 0 * * *", timezone=ZoneInfo(settings.timezone)),
+        id="daily_cleanup",
+        replace_existing=True,
+        max_instances=1,
+    )
 
     scheduler.start()
     print(f"📅 Scheduler started with {len(scheduler.get_jobs())} jobs:")
@@ -134,6 +171,42 @@ def _run_ai_prediction(get_db_session_callable) -> None:
         except Exception:
             # Do not crash scheduler on 409 or transient failures
             pass
+    finally:
+        db.close()
+
+
+def _run_daily_cleanup(get_db_session_callable) -> None:
+    """Clean up old data at midnight to keep only relevant history."""
+    tz = ZoneInfo(settings.timezone)
+    today = datetime.now(tz).date()
+    db = next(get_db_session_callable())
+    try:
+        # Keep 30 days of history for analysis
+        cutoff_date = today - timedelta(days=30)
+        
+        # Clean up old predictions
+        old_predictions = db.query(DailyPrediction).filter(
+            DailyPrediction.date < cutoff_date
+        ).delete()
+        
+        # Clean up old AI predictions
+        old_ai_predictions = db.query(AIPrediction).filter(
+            AIPrediction.date < cutoff_date
+        ).delete()
+        
+        # Clean up old price logs
+        old_price_logs = db.query(PriceLog).filter(
+            PriceLog.date < cutoff_date
+        ).delete()
+        
+        db.commit()
+        
+        if old_predictions or old_ai_predictions or old_price_logs:
+            print(f"🧹 Daily cleanup: Removed {old_predictions} predictions, "
+                  f"{old_ai_predictions} AI predictions, {old_price_logs} price logs older than {cutoff_date}")
+    except Exception as e:
+        print(f"❌ Daily cleanup failed: {e}")
+        db.rollback()
     finally:
         db.close()
 

@@ -179,41 +179,7 @@ export function DashboardScreen() {
       return timeA - timeB;
     });
   }, [keyTimes]);
-  const handlePriceUpdate = async (index: number) => {
-    const checkpoint = keyTimes[index];
-    const checkpointName = checkpoint.label.toLowerCase() === '2:00' ? 'twoPM' : checkpoint.label.toLowerCase();
-    
-    // Prompt user for price input
-    const priceInput = window.prompt(`Enter ${checkpoint.label} price for SPY:`, '');
-    if (!priceInput) return;
-    
-    const price = parseFloat(priceInput);
-    if (isNaN(price) || price <= 0) {
-      alert('Please enter a valid price');
-      return;
-    }
 
-    try {
-      // Get current date in CST timezone
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'America/Chicago'
-      });
-
-      // Call the backend API
-      await api.logPrice(checkpointName, { date: today, price: price });
-
-      // Update the UI with the captured price
-      setKeyTimes(prev => prev.map((item, i) => i === index ? {
-        ...item,
-        price: price
-      } : item));
-
-      console.log(`Price captured: ${checkpoint.label} = $${price}`);
-    } catch (error) {
-      console.error('Error capturing price:', error);
-      alert('Failed to capture price. Please try again.');
-    }
-  };
   const getBiasIcon = (bias: string) => {
     switch (bias) {
       case 'bullish':
@@ -320,9 +286,7 @@ export function DashboardScreen() {
       <div>
         <h3 className="text-sm font-medium text-[#A7B3C5] mb-3">Key Times (CST)</h3>
         <div className="grid grid-cols-2 gap-3">
-          {keyTimes.map((item, index) => <motion.button key={item.time} onClick={() => handlePriceUpdate(index)} whileTap={{
-          scale: 0.98
-        }} className="bg-[#12161D] rounded-xl p-4 border border-white/8 text-left hover:border-[#006072]/50 transition-colors">
+          {keyTimes.map((item, index) => <div key={item.time} className="bg-[#12161D] rounded-xl p-4 border border-white/8 text-left">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-[#A7B3C5]">{item.label}</span>
                 <span className="text-xs font-mono text-[#A7B3C5]">{item.time}</span>
@@ -330,7 +294,7 @@ export function DashboardScreen() {
               <p className="text-lg font-mono font-bold">
                 {item.price != null ? `$${item.price.toFixed(2)}` : '---'}
               </p>
-            </motion.button>)}
+            </div>)}
         </div>
       </div>
 

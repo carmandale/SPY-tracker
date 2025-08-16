@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone, time as time_module, timedelta
+from datetime import datetime, timezone, time as time_module, timedelta, date
 from typing import Optional, Dict, Any, Tuple
 import json
 import os
 from pathlib import Path
 
 import yfinance as yf
+import pandas as pd
+import pytz
 
 
 class PriceProvider(ABC):
@@ -21,6 +23,11 @@ class PriceProvider(ABC):
     @abstractmethod
     def is_market_open(self) -> bool:
         """Check if market is currently open"""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_official_price(self, symbol: str, checkpoint: str) -> Optional[float]:
+        """Get official OHLC price for a specific checkpoint"""
         raise NotImplementedError
 
 
@@ -163,6 +170,176 @@ class YFinanceProvider(PriceProvider):
         """Simple DST check for US Eastern Time"""
         # Simplified: assume DST from March to November
         return 3 <= dt.month <= 10
+    
+    def get_official_price(self, symbol: str, checkpoint: str) -> Optional[float]:
+        """Get official OHLC price for a specific checkpoint.
+        
+        For open: gets official market open price
+        For noon/2PM: gets price at specific time
+        For close: gets official closing price
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            
+            # For premarket, just get current price
+            if checkpoint == "preMarket":
+                return self.get_price(symbol)
+            
+            # Get today's 1-minute data
+            hist = ticker.history(period="1d", interval="1m")
+            if hist is None or len(hist) == 0:
+                return self.get_price(symbol)  # Fallback to current price
+            
+            # Convert index to ET timezone for proper time matching
+            et_offset = -5 if self._is_dst(datetime.now()) else -4
+            hist.index = hist.index.tz_convert(f'Etc/GMT{-et_offset}')
+            
+            if checkpoint == "open":
+                # Get the official open price (first trade of the day)
+                return float(hist["Open"].iloc[0])
+            elif checkpoint == "close":
+                # Get the official close price (last trade of the day)
+                return float(hist["Close"].iloc[-1])
+            elif checkpoint == "noon":
+                # Get price at 12:00 PM ET
+                target_time = hist.index[0].replace(hour=12, minute=0, second=0)
+                # Find closest minute to noon
+                time_diff = abs(hist.index - target_time)
+                closest_idx = time_diff.argmin()
+                return float(hist["Close"].iloc[closest_idx])
+            elif checkpoint == "twoPM":
+                # Get price at 2:00 PM ET
+                target_time = hist.index[0].replace(hour=14, minute=0, second=0)
+                # Find closest minute to 2PM
+                time_diff = abs(hist.index - target_time)
+                closest_idx = time_diff.argmin()
+                return float(hist["Close"].iloc[closest_idx])
+            else:
+                return self.get_price(symbol)
+                
+        except Exception as e:
+            print(f"Error getting official price for {symbol} at {checkpoint}: {e}")
+            # Fallback to current price
+            return self.get_price(symbol)
+    
+    def get_daily_ohlc(self, symbol: str, target_date: date) -> Optional[Dict[str, float]]:
+        """Get official OHLC prices for a specific trading day.
+        
+        Returns a dictionary with keys: 'open', 'high', 'low', 'close'
+        Returns None if no data available (weekend, holiday, or API failure)
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            
+            # Get daily data for the specific date
+            end_date = target_date + timedelta(days=1)
+            hist = ticker.history(start=target_date, end=end_date, interval="1d")
+            
+            if hist is None or len(hist) == 0:
+                print(f"No OHLC data available for {symbol} on {target_date}")
+                return None
+            
+            # Extract OHLC values
+            row = hist.iloc[0]
+            ohlc = {
+                'open': float(row['Open']),
+                'high': float(row['High']),
+                'low': float(row['Low']),
+                'close': float(row['Close'])
+            }
+            
+            return ohlc
+            
+        except Exception as e:
+            print(f"Error getting daily OHLC for {symbol} on {target_date}: {e}")
+            return None
+    
+    def get_official_checkpoint_price(self, symbol: str, checkpoint: str, target_date: date) -> Optional[float]:
+        """Get official price for a specific checkpoint on a target date.
+        
+        For open/close: Uses daily OHLC data
+        For noon/twoPM: Uses minute-level data to find price at specific time
+        """
+        try:
+            if checkpoint in ['open', 'close']:
+                # Use daily OHLC data for open/close
+                ohlc = self.get_daily_ohlc(symbol, target_date)
+                if ohlc is None:
+                    print(f"No daily data for {symbol} on {target_date}, falling back to current price")
+                    return self.get_price(symbol)
+                
+                return ohlc[checkpoint]
+            
+            elif checkpoint in ['noon', 'twoPM']:
+                # Use minute-level data for intraday prices
+                ticker = yf.Ticker(symbol)
+                
+                # Get minute data for the specific date
+                end_date = target_date + timedelta(days=1)
+                hist = ticker.history(start=target_date, end=end_date, interval="1m")
+                
+                if hist is None or len(hist) == 0:
+                    print(f"No minute data for {symbol} on {target_date}, falling back to current price")
+                    return self.get_price(symbol)
+                
+                # Convert to Eastern Time for accurate time matching
+                # Use pytz timezone names for reliability
+                et_tz = pytz.timezone('US/Eastern')
+                hist.index = hist.index.tz_convert(et_tz)
+                
+                # Determine target time in ET
+                if checkpoint == 'noon':
+                    target_hour, target_minute = 12, 0
+                elif checkpoint == 'twoPM':
+                    target_hour, target_minute = 14, 0
+                else:
+                    raise ValueError(f"Unknown intraday checkpoint: {checkpoint}")
+                
+                # Find the closest minute to target time
+                target_time = hist.index[0].replace(hour=target_hour, minute=target_minute, second=0)
+                time_diff = abs(hist.index - target_time)
+                closest_idx = time_diff.argmin()
+                
+                return float(hist['Close'].iloc[closest_idx])
+                
+            else:
+                # For premarket or unknown checkpoints, use current price
+                return self.get_price(symbol)
+                
+        except Exception as e:
+            print(f"Error getting official checkpoint price for {symbol} at {checkpoint} on {target_date}: {e}")
+            # Fallback to current price
+            return self.get_price(symbol)
+    
+    def validate_official_price(self, price: Optional[float], symbol: str, checkpoint: str) -> bool:
+        """Validate that an official price is reasonable for the given symbol.
+        
+        Returns True if price passes basic sanity checks, False otherwise.
+        """
+        if price is None:
+            return False
+        
+        try:
+            price = float(price)
+        except (ValueError, TypeError):
+            return False
+        
+        # Basic range checks for SPY (adjust for other symbols if needed)
+        if symbol.upper() == 'SPY':
+            # SPY should be between $50 and $2000 (very wide range for safety)
+            min_price = 50.0
+            max_price = 2000.0
+        else:
+            # Generic stock price range
+            min_price = 1.0
+            max_price = 10000.0
+        
+        # Check if price is within reasonable bounds
+        if price <= 0 or price < min_price or price > max_price:
+            print(f"Invalid price {price} for {symbol} at {checkpoint} - outside range [{min_price}, {max_price}]")
+            return False
+        
+        return True
 
 
 # Enhanced default provider with caching and market data

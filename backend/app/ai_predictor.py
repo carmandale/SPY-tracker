@@ -19,6 +19,10 @@ from .timezone_utils import ET, get_checkpoint_datetime
 from .baseline_model import baseline_predictor
 
 
+# Prompt version for tracking changes
+PROMPT_VERSION = "v2.0.0"  # Added prompt versioning, improved analysis
+
+
 @dataclass
 class PricePrediction:
     """Single price prediction with confidence and reasoning."""
@@ -29,6 +33,8 @@ class PricePrediction:
     interval_low: Optional[float] = None
     interval_high: Optional[float] = None
     source: str = "llm"
+    model: Optional[str] = None
+    prompt_version: Optional[str] = None
 
 
 @dataclass
@@ -364,7 +370,9 @@ Provide predictions in this exact JSON format:
                     reasoning=data["reasoning"],
                     interval_low=float(interval_low),
                     interval_high=float(interval_high),
-                    source="llm"
+                    source="llm",
+                    model=model,
+                    prompt_version=PROMPT_VERSION
                 ))
 
             self.last_analysis = analysis
@@ -402,7 +410,9 @@ Provide predictions in this exact JSON format:
                     reasoning=pred["reasoning"],
                     interval_low=pred["interval_low"],
                     interval_high=pred["interval_high"],
-                    source="baseline"
+                    source="baseline",
+                    model="baseline_statistical",
+                    prompt_version="baseline_v1.0"
                 )
                 for pred in baseline_preds
             ]
