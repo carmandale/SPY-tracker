@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 from typing import Optional
+import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -10,6 +11,9 @@ from .config import settings
 from .providers import default_provider
 from .models import DailyPrediction, PriceLog, AIPrediction
 from .ai_endpoints import create_ai_prediction_for_date
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 # Daily AI prediction run at 08:00 CST (weekdays) - fresh each morning
@@ -34,11 +38,11 @@ def capture_price(db: Session, checkpoint: str, target_date: Optional[date] = No
     
     # Validate the price before storing
     if price is None:
-        print(f"⚠️  No official price available for {settings.symbol} {checkpoint} on {target_date}")
+        logger.warning(f"No official price available for {settings.symbol} {checkpoint} on {target_date}")
         return
     
     if not default_provider.validate_official_price(price, settings.symbol, checkpoint):
-        print(f"⚠️  Invalid official price {price} for {settings.symbol} {checkpoint} on {target_date}")
+        logger.warning(f"Invalid official price {price} for {settings.symbol} {checkpoint} on {target_date}")
         return
 
     # Upsert DailyPrediction row for the target date
@@ -60,7 +64,7 @@ def capture_price(db: Session, checkpoint: str, target_date: Optional[date] = No
     elif checkpoint == "close":
         pred.close = price
     else:
-        print(f"⚠️  Unknown checkpoint: {checkpoint}")
+        logger.warning(f"Unknown checkpoint: {checkpoint}")
         return
 
     # Log the price capture for audit trail
@@ -70,7 +74,7 @@ def capture_price(db: Session, checkpoint: str, target_date: Optional[date] = No
     db.commit()
     
     # Enhanced logging for monitoring
-    print(f"✅ Captured official {checkpoint} price ${price:.2f} for {settings.symbol} on {target_date}")
+    logger.info(f"Captured official {checkpoint} price ${price:.2f} for {settings.symbol} on {target_date}")
 
 
 def start_scheduler(get_db_session_callable):
@@ -141,9 +145,9 @@ def start_scheduler(get_db_session_callable):
     )
 
     scheduler.start()
-    print(f"📅 Scheduler started with {len(scheduler.get_jobs())} jobs:")
+    logger.info(f"Scheduler started with {len(scheduler.get_jobs())} jobs:")
     for job in scheduler.get_jobs():
-        print(f"   - {job.id}: {job.next_run_time}")
+        logger.info(f"   - {job.id}: {job.next_run_time}")
     
     return scheduler
 
@@ -168,9 +172,9 @@ def _run_ai_prediction(get_db_session_callable) -> None:
                 lookback_days=settings.ai_lookback_days,
                 db=db,
             )
-        except Exception:
+        except Exception as e:
             # Do not crash scheduler on 409 or transient failures
-            pass
+            logger.error(f"Failed to create AI prediction for {today_local}: {e}")
     finally:
         db.close()
 
@@ -202,10 +206,10 @@ def _run_daily_cleanup(get_db_session_callable) -> None:
         db.commit()
         
         if old_predictions or old_ai_predictions or old_price_logs:
-            print(f"🧹 Daily cleanup: Removed {old_predictions} predictions, "
-                  f"{old_ai_predictions} AI predictions, {old_price_logs} price logs older than {cutoff_date}")
+            logger.info(f"Daily cleanup: Removed {old_predictions} predictions, "
+                      f"{old_ai_predictions} AI predictions, {old_price_logs} price logs older than {cutoff_date}")
     except Exception as e:
-        print(f"❌ Daily cleanup failed: {e}")
+        logger.error(f"Daily cleanup failed: {e}")
         db.rollback()
     finally:
         db.close()

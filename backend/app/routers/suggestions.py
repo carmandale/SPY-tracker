@@ -5,6 +5,7 @@ Handles Iron Condor/Butterfly suggestions and profit/loss calculations.
 
 from datetime import date, datetime, timezone
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -13,14 +14,31 @@ from ..database import get_db
 from ..models import DailyPrediction
 from ..suggestions import generate_suggestions
 from ..pl_calculations import pl_calculator
+from ..exceptions import DataNotFoundException, ValidationException
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["suggestions"])
 
 
 @router.get("/suggestions/{day}")
 def get_suggestions(day: date, db: Session = Depends(get_db)):
+    """Get option suggestions for a specific date.
+    
+    Raises:
+        DataNotFoundException: If no prediction exists for the requested date
+        ValidationException: If insufficient data for suggestions
+    """
     # Get prediction for the day to extract needed data
     pred = db.query(DailyPrediction).filter(DailyPrediction.date == day).first()
+    
+    if not pred:
+        logger.warning(f"No prediction found for {day}")
+        raise DataNotFoundException(
+            f"No prediction data found for {day.isoformat()}",
+            {"date": day.isoformat(), "hint": "Create a prediction for this date first"}
+        )
     
     # Get last 20 days for range hit calculation
     recent_preds = (
@@ -41,16 +59,35 @@ def get_suggestions(day: date, db: Session = Depends(get_db)):
         current_price = pred.close or pred.twoPM or pred.noon or pred.open or pred.preMarket
         if current_price is None and pred.predHigh and pred.predLow:
             current_price = (pred.predHigh + pred.predLow) / 2.0
+            logger.info(f"Using prediction midpoint as current price: ${current_price:.2f}")
     
-    suggestions = generate_suggestions(
-        current_price=current_price,
-        bias=pred.bias if pred else "Neutral",
-        rangeHit20=rangeHit20,
-        pred_low=pred.predLow if pred else None,
-        pred_high=pred.predHigh if pred else None
-    )
+    if current_price is None:
+        logger.error(f"No price data available for {day}")
+        raise ValidationException(
+            "Insufficient price data to generate suggestions",
+            {"date": day.isoformat(), "missing": "Need at least one price point or prediction range"}
+        )
     
-    return {"date": day.isoformat(), "suggestions": [s.__dict__ for s in suggestions]}
+    try:
+        suggestions = generate_suggestions(
+            current_price=current_price,
+            bias=pred.bias if pred else "Neutral",
+            rangeHit20=rangeHit20,
+            pred_low=pred.predLow if pred else None,
+            pred_high=pred.predHigh if pred else None
+        )
+        
+        if not suggestions:
+            logger.warning(f"No suggestions generated for {day}")
+            return {"date": day.isoformat(), "suggestions": [], "message": "Unable to generate suggestions with current data"}
+        
+        return {"date": day.isoformat(), "suggestions": [s.__dict__ for s in suggestions]}
+    except Exception as e:
+        logger.error(f"Error generating suggestions for {day}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Failed to generate suggestions", "reason": str(e)}
+        )
 
 
 @router.get("/suggestions/{day}/pl-data")
@@ -64,13 +101,17 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
     
     for suggestion in suggestions:
         strategy_type = suggestion.get("strategy")
-        # Get actual current price from prediction data, use a reasonable fallback
+        # Get actual current price from prediction data
         pred = db.query(DailyPrediction).filter(DailyPrediction.date == day).first()
-        current_price = 635.0  # Default SPY price
+        current_price = None
         if pred:
             current_price = pred.close or pred.twoPM or pred.noon or pred.open or pred.preMarket
             if current_price is None and pred.predHigh and pred.predLow:
                 current_price = (pred.predHigh + pred.predLow) / 2.0
+        
+        if current_price is None:
+            logger.warning(f"No price data for P&L calculation on {day}")
+            continue  # Skip this suggestion if no price available
         
         try:
             if strategy_type == "Iron Condor":
@@ -160,7 +201,7 @@ def get_pl_data_for_suggestions(day: date, db: Session = Depends(get_db)):
             
         except Exception as e:
             # Log error but continue with other suggestions
-            print(f"Error calculating P&L for {strategy_type}: {e}")
+            logger.error(f"Error calculating P&L for {strategy_type} on {day}: {e}", exc_info=True)
             continue
     
     return {
@@ -215,4 +256,8 @@ def get_current_pl(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"P&L calculation failed: {str(e)}")
+        logger.error(f"P&L calculation failed for {suggestion_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail={"error": "P&L calculation failed", "suggestion_id": suggestion_id, "reason": str(e)}
+        )

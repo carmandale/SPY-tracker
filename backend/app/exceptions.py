@@ -48,6 +48,12 @@ class InvalidDateRangeException(SPYTrackerException):
         super().__init__(message, status.HTTP_400_BAD_REQUEST, details)
 
 
+class ValidationException(SPYTrackerException):
+    """Raised when data validation fails"""
+    def __init__(self, message: str = "Validation failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, status.HTTP_400_BAD_REQUEST, details)
+
+
 async def spy_tracker_exception_handler(request: Request, exc: SPYTrackerException):
     """Handle custom SPY Tracker exceptions"""
     logger.error(f"SPYTrackerException: {exc.message} - Details: {exc.details}")

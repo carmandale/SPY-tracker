@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import math
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -78,19 +82,36 @@ def generate_suggestions(
     rangeHit20: float = 0.0,
     pred_low: Optional[float] = None,
     pred_high: Optional[float] = None,
-    iv: float = 0.18  # Default 18% IV for MVP
+    iv: Optional[float] = None
 ) -> List[Suggestion]:
     """Generate option structure suggestions based on EM and market conditions"""
     
     suggestions: List[Suggestion] = []
     
+    # Validate IV - use reasonable default if not provided
+    if iv is None or iv <= 0:
+        # Use a reasonable market-based default (around 15% for SPY historically)
+        iv = 0.15
+        logger.warning(f"Invalid or missing IV, using default {iv:.1%}")
+    elif iv > 1.0:
+        # IV should be decimal, not percentage
+        logger.warning(f"IV appears to be percentage ({iv}), converting to decimal")
+        iv = iv / 100.0
+    
     # If no current price, try to use prediction midpoint
     if current_price is None:
         if pred_low is not None and pred_high is not None:
             current_price = (pred_low + pred_high) / 2.0
+            logger.info(f"Using prediction midpoint as current price: ${current_price:.2f}")
         else:
             # Can't generate suggestions without a price
+            logger.error("Cannot generate suggestions without a current price or predictions")
             return suggestions
+    
+    # Validate current price
+    if current_price <= 0:
+        logger.error(f"Invalid current price: ${current_price}")
+        return suggestions
     
     # Determine structure: IC if Neutral bias and good hit rate, else IB
     use_ic = (bias == "Neutral" and rangeHit20 >= 0.65)

@@ -3,11 +3,15 @@ from datetime import datetime, timezone, time as time_module, timedelta, date
 from typing import Optional, Dict, Any, Tuple
 import json
 import os
+import logging
 from pathlib import Path
 
 import yfinance as yf
 import pandas as pd
 import pytz
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class PriceProvider(ABC):
@@ -58,7 +62,7 @@ class YFinanceProvider(PriceProvider):
                 return self._get_cached_price(symbol)
                 
         except Exception as e:
-            print(f"Error fetching price for {symbol}: {e}")
+            logger.error(f"Error fetching price for {symbol}: {e}")
             # Fallback to cached value
             return self._get_cached_price(symbol)
     
@@ -98,7 +102,7 @@ class YFinanceProvider(PriceProvider):
             }
             
         except Exception as e:
-            print(f"Error fetching market data for {symbol}: {e}")
+            logger.error(f"Error fetching market data for {symbol}: {e}")
             # Return basic data if available
             price = self.get_price(symbol)
             return {"price": price} if price else {}
@@ -218,7 +222,7 @@ class YFinanceProvider(PriceProvider):
                 return self.get_price(symbol)
                 
         except Exception as e:
-            print(f"Error getting official price for {symbol} at {checkpoint}: {e}")
+            logger.error(f"Error getting official price for {symbol} at {checkpoint}: {e}")
             # Fallback to current price
             return self.get_price(symbol)
     
@@ -236,7 +240,7 @@ class YFinanceProvider(PriceProvider):
             hist = ticker.history(start=target_date, end=end_date, interval="1d")
             
             if hist is None or len(hist) == 0:
-                print(f"No OHLC data available for {symbol} on {target_date}")
+                logger.warning(f"No OHLC data available for {symbol} on {target_date}")
                 return None
             
             # Extract OHLC values
@@ -251,7 +255,7 @@ class YFinanceProvider(PriceProvider):
             return ohlc
             
         except Exception as e:
-            print(f"Error getting daily OHLC for {symbol} on {target_date}: {e}")
+            logger.error(f"Error getting daily OHLC for {symbol} on {target_date}: {e}")
             return None
     
     def get_official_checkpoint_price(self, symbol: str, checkpoint: str, target_date: date) -> Optional[float]:
@@ -265,7 +269,7 @@ class YFinanceProvider(PriceProvider):
                 # Use daily OHLC data for open/close
                 ohlc = self.get_daily_ohlc(symbol, target_date)
                 if ohlc is None:
-                    print(f"No daily data for {symbol} on {target_date}, falling back to current price")
+                    logger.warning(f"No daily data for {symbol} on {target_date}, falling back to current price")
                     return self.get_price(symbol)
                 
                 return ohlc[checkpoint]
@@ -279,7 +283,7 @@ class YFinanceProvider(PriceProvider):
                 hist = ticker.history(start=target_date, end=end_date, interval="1m")
                 
                 if hist is None or len(hist) == 0:
-                    print(f"No minute data for {symbol} on {target_date}, falling back to current price")
+                    logger.warning(f"No minute data for {symbol} on {target_date}, falling back to current price")
                     return self.get_price(symbol)
                 
                 # Convert to Eastern Time for accurate time matching
@@ -307,7 +311,7 @@ class YFinanceProvider(PriceProvider):
                 return self.get_price(symbol)
                 
         except Exception as e:
-            print(f"Error getting official checkpoint price for {symbol} at {checkpoint} on {target_date}: {e}")
+            logger.error(f"Error getting official checkpoint price for {symbol} at {checkpoint} on {target_date}: {e}")
             # Fallback to current price
             return self.get_price(symbol)
     
@@ -336,7 +340,7 @@ class YFinanceProvider(PriceProvider):
         
         # Check if price is within reasonable bounds
         if price <= 0 or price < min_price or price > max_price:
-            print(f"Invalid price {price} for {symbol} at {checkpoint} - outside range [{min_price}, {max_price}]")
+            logger.warning(f"Invalid price {price} for {symbol} at {checkpoint} - outside range [{min_price}, {max_price}]")
             return False
         
         return True
