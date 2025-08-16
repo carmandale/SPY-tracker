@@ -66,7 +66,12 @@ def get_ai_predictions_for_date(target_date: date, db: Session = Depends(get_db)
                     predicted_price=pred.predicted_price,
                     confidence=pred.confidence,
                     reasoning=pred.reasoning,
-                    market_context=day_predictions.market_context
+                    market_context=day_predictions.market_context,
+                    interval_low=pred.interval_low,
+                    interval_high=pred.interval_high,
+                    source=pred.source,
+                    model=pred.model,
+                    prompt_version=pred.prompt_version
                 )
                 db.add(ai_pred)
             

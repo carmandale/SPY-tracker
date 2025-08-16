@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .providers import default_provider
-from .models import DailyPrediction, PriceLog
+from .models import DailyPrediction, PriceLog, AIPrediction
 from .ai_endpoints import create_ai_prediction_for_date
 
 
@@ -18,7 +18,8 @@ AI_PREDICTION_CRON = "0 8 * * 1-5"
 def capture_price(db: Session, checkpoint: str) -> None:
     tz = ZoneInfo(settings.timezone)
     now_local = datetime.now(tz)
-    price = default_provider.get_price(settings.symbol)
+    # Use official OHLC prices instead of current price
+    price = default_provider.get_official_price(settings.symbol, checkpoint)
     if price is None:
         return
 
@@ -102,6 +103,15 @@ def start_scheduler(get_db_session_callable):
         replace_existing=True,
         max_instances=1,
     )
+    
+    # Daily cleanup at midnight CST
+    scheduler.add_job(
+        lambda: _run_daily_cleanup(get_db_session_callable),
+        CronTrigger.from_crontab("0 0 * * *", timezone=ZoneInfo(settings.timezone)),
+        id="daily_cleanup",
+        replace_existing=True,
+        max_instances=1,
+    )
 
     scheduler.start()
     print(f"📅 Scheduler started with {len(scheduler.get_jobs())} jobs:")
@@ -134,6 +144,42 @@ def _run_ai_prediction(get_db_session_callable) -> None:
         except Exception:
             # Do not crash scheduler on 409 or transient failures
             pass
+    finally:
+        db.close()
+
+
+def _run_daily_cleanup(get_db_session_callable) -> None:
+    """Clean up old data at midnight to keep only relevant history."""
+    tz = ZoneInfo(settings.timezone)
+    today = datetime.now(tz).date()
+    db = next(get_db_session_callable())
+    try:
+        # Keep 30 days of history for analysis
+        cutoff_date = today - timedelta(days=30)
+        
+        # Clean up old predictions
+        old_predictions = db.query(DailyPrediction).filter(
+            DailyPrediction.date < cutoff_date
+        ).delete()
+        
+        # Clean up old AI predictions
+        old_ai_predictions = db.query(AIPrediction).filter(
+            AIPrediction.date < cutoff_date
+        ).delete()
+        
+        # Clean up old price logs
+        old_price_logs = db.query(PriceLog).filter(
+            PriceLog.date < cutoff_date
+        ).delete()
+        
+        db.commit()
+        
+        if old_predictions or old_ai_predictions or old_price_logs:
+            print(f"🧹 Daily cleanup: Removed {old_predictions} predictions, "
+                  f"{old_ai_predictions} AI predictions, {old_price_logs} price logs older than {cutoff_date}")
+    except Exception as e:
+        print(f"❌ Daily cleanup failed: {e}")
+        db.rollback()
     finally:
         db.close()
 

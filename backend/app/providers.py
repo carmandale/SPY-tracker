@@ -22,6 +22,11 @@ class PriceProvider(ABC):
     def is_market_open(self) -> bool:
         """Check if market is currently open"""
         raise NotImplementedError
+    
+    @abstractmethod
+    def get_official_price(self, symbol: str, checkpoint: str) -> Optional[float]:
+        """Get official OHLC price for a specific checkpoint"""
+        raise NotImplementedError
 
 
 class YFinanceProvider(PriceProvider):
@@ -163,6 +168,57 @@ class YFinanceProvider(PriceProvider):
         """Simple DST check for US Eastern Time"""
         # Simplified: assume DST from March to November
         return 3 <= dt.month <= 10
+    
+    def get_official_price(self, symbol: str, checkpoint: str) -> Optional[float]:
+        """Get official OHLC price for a specific checkpoint.
+        
+        For open: gets official market open price
+        For noon/2PM: gets price at specific time
+        For close: gets official closing price
+        """
+        try:
+            ticker = yf.Ticker(symbol)
+            
+            # For premarket, just get current price
+            if checkpoint == "preMarket":
+                return self.get_price(symbol)
+            
+            # Get today's 1-minute data
+            hist = ticker.history(period="1d", interval="1m")
+            if hist is None or len(hist) == 0:
+                return self.get_price(symbol)  # Fallback to current price
+            
+            # Convert index to ET timezone for proper time matching
+            et_offset = -5 if self._is_dst(datetime.now()) else -4
+            hist.index = hist.index.tz_convert(f'Etc/GMT{-et_offset}')
+            
+            if checkpoint == "open":
+                # Get the official open price (first trade of the day)
+                return float(hist["Open"].iloc[0])
+            elif checkpoint == "close":
+                # Get the official close price (last trade of the day)
+                return float(hist["Close"].iloc[-1])
+            elif checkpoint == "noon":
+                # Get price at 12:00 PM ET
+                target_time = hist.index[0].replace(hour=12, minute=0, second=0)
+                # Find closest minute to noon
+                time_diff = abs(hist.index - target_time)
+                closest_idx = time_diff.argmin()
+                return float(hist["Close"].iloc[closest_idx])
+            elif checkpoint == "twoPM":
+                # Get price at 2:00 PM ET
+                target_time = hist.index[0].replace(hour=14, minute=0, second=0)
+                # Find closest minute to 2PM
+                time_diff = abs(hist.index - target_time)
+                closest_idx = time_diff.argmin()
+                return float(hist["Close"].iloc[closest_idx])
+            else:
+                return self.get_price(symbol)
+                
+        except Exception as e:
+            print(f"Error getting official price for {symbol} at {checkpoint}: {e}")
+            # Fallback to current price
+            return self.get_price(symbol)
 
 
 # Enhanced default provider with caching and market data
