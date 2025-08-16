@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 # Prompt version for tracking changes
-PROMPT_VERSION = "v2.0.0"  # Added prompt versioning, improved analysis
+PROMPT_VERSION = "v3.0.0"  # Enhanced with comprehensive expert analysis, technical indicators, and regime detection
 
 
 @dataclass
@@ -115,6 +115,57 @@ class AIPredictor:
         true_range = ranges.max(axis=1)
         atr = true_range.rolling(window=14).mean().iloc[-1] if len(true_range) >= 14 else None
         
+        # Calculate additional technical indicators for enhanced analysis
+        close_prices = hist['Close']
+        
+        # RSI (Relative Strength Index) - momentum oscillator
+        delta = close_prices.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        current_rsi = float(rsi.iloc[-1]) if len(rsi) > 0 and not pd.isna(rsi.iloc[-1]) else None
+        
+        # Moving averages for trend identification
+        sma_20 = close_prices.rolling(window=20).mean().iloc[-1] if len(close_prices) >= 20 else None
+        sma_50 = close_prices.rolling(window=50).mean().iloc[-1] if len(close_prices) >= 50 else None
+        ema_9 = close_prices.ewm(span=9, adjust=False).mean().iloc[-1] if len(close_prices) >= 9 else None
+        ema_21 = close_prices.ewm(span=21, adjust=False).mean().iloc[-1] if len(close_prices) >= 21 else None
+        
+        # MACD (Moving Average Convergence Divergence) - trend and momentum
+        if len(close_prices) >= 26:
+            ema_12 = close_prices.ewm(span=12, adjust=False).mean()
+            ema_26 = close_prices.ewm(span=26, adjust=False).mean()
+            macd_line = ema_12 - ema_26
+            signal_line = macd_line.ewm(span=9, adjust=False).mean()
+            macd_histogram = macd_line - signal_line
+            current_macd = float(macd_line.iloc[-1]) if not pd.isna(macd_line.iloc[-1]) else None
+            current_signal = float(signal_line.iloc[-1]) if not pd.isna(signal_line.iloc[-1]) else None
+            current_histogram = float(macd_histogram.iloc[-1]) if not pd.isna(macd_histogram.iloc[-1]) else None
+        else:
+            current_macd = current_signal = current_histogram = None
+        
+        # Bollinger Bands for volatility and potential breakouts
+        if len(close_prices) >= 20:
+            bb_middle = close_prices.rolling(window=20).mean()
+            bb_std = close_prices.rolling(window=20).std()
+            bb_upper = bb_middle + (bb_std * 2)
+            bb_lower = bb_middle - (bb_std * 2)
+            bb_width = ((bb_upper - bb_lower) / bb_middle).iloc[-1] if len(bb_middle) > 0 else None
+            bb_position = ((close_prices.iloc[-1] - bb_lower.iloc[-1]) / (bb_upper.iloc[-1] - bb_lower.iloc[-1])) if len(bb_upper) > 0 else None
+        else:
+            bb_width = bb_position = None
+        
+        # Volume analysis for institutional activity
+        avg_volume_20 = hist['Volume'].rolling(window=20).mean().iloc[-1] if len(hist) >= 20 else None
+        volume_ratio = (hist['Volume'].iloc[-1] / avg_volume_20) if avg_volume_20 and avg_volume_20 > 0 else None
+        
+        # Support and Resistance levels
+        recent_highs = hist['High'].tail(20) if len(hist) >= 20 else hist['High']
+        recent_lows = hist['Low'].tail(20) if len(hist) >= 20 else hist['Low']
+        resistance_levels = recent_highs.nlargest(3).tolist() if len(recent_highs) >= 3 else recent_highs.tolist()
+        support_levels = recent_lows.nsmallest(3).tolist() if len(recent_lows) >= 3 else recent_lows.tolist()
+        
         # Get VIX data if available
         try:
             vix = yf.Ticker("^VIX")
@@ -170,6 +221,27 @@ class AIPredictor:
                 }
                 for idx, row in hist.tail(lookback_days).iterrows()
             ],
+            "technical_indicators": {
+                "rsi": current_rsi,
+                "sma_20": float(sma_20) if sma_20 is not None else None,
+                "sma_50": float(sma_50) if sma_50 is not None else None,
+                "ema_9": float(ema_9) if ema_9 is not None else None,
+                "ema_21": float(ema_21) if ema_21 is not None else None,
+                "macd": {
+                    "macd_line": current_macd,
+                    "signal_line": current_signal,
+                    "histogram": current_histogram
+                } if current_macd is not None else None,
+                "bollinger_bands": {
+                    "width": float(bb_width) if bb_width is not None else None,
+                    "position": float(bb_position) if bb_position is not None else None  # 0=lower band, 1=upper band
+                } if bb_width is not None else None,
+                "volume_ratio": float(volume_ratio) if volume_ratio is not None else None
+            },
+            "support_resistance": {
+                "resistance_levels": [float(x) for x in resistance_levels],
+                "support_levels": [float(x) for x in support_levels]
+            },
             "summary": f"SPY analysis for {target_date}: Pre-market {safe_format_price(pre_market_price)}, "
                       f"Previous close {safe_format_price(prev_close)}, {lookback_days}-day range {safe_format_price(recent_low)}-{safe_format_price(recent_high)}"
         }
@@ -179,32 +251,32 @@ class AIPredictor:
     def _get_ai_predictions(self, context: Dict, target_date: date) -> List[PricePrediction]:
         """Use GPT-4/5 to generate price predictions."""
         
-        system_prompt = """You are an expert SPY (S&P 500 ETF) trader with advanced reasoning capabilities. 
-Use deep analytical thinking to predict 4 key intraday price points.
+        system_prompt = """You are an elite quantitative trader and market microstructure expert specializing in SPY intraday price prediction.
+Your analysis combines institutional order flow patterns, technical indicators, regime detection, and behavioral finance insights.
 
-Apply sophisticated analysis considering:
-- Multi-timeframe technical patterns and momentum
-- Market microstructure and institutional flows  
-- Volatility regime analysis and mean reversion tendencies
-- Cross-asset correlations and macro factors
-- Order flow dynamics and support/resistance levels
+Your expertise includes:
+1. **Technical Analysis Mastery**: RSI divergences, MACD crossovers, Bollinger Band squeezes, moving average confluences
+2. **Market Microstructure**: Opening auction dynamics, VWAP magnetism, MOC imbalances, dark pool activity patterns
+3. **Regime Detection**: Trending vs mean-reverting environments, volatility regime shifts, risk-on/risk-off transitions
+4. **Intraday Patterns**: Morning gap dynamics, lunch hour behavior, power hour accumulation, end-of-day positioning
+5. **Cross-Asset Analysis**: VIX-SPY correlation, futures-cash basis, sector rotation signals, bond-equity dynamics
+6. **Behavioral Factors**: Options expiry effects, weekly/monthly patterns, sentiment extremes, positioning squeezes
 
-You must respond with valid JSON containing predictions for:
-- open: Market open price (9:30 AM ET)
-- noon: Midday price (12:00 PM ET) 
-- twoPM: Afternoon price (2:00 PM ET)
-- close: Market close price (4:00 PM ET)
+Analyze the provided data with institutional-grade sophistication:
+- Identify the current market regime (trend-following, mean-reverting, volatile)
+- Detect any technical pattern completions or breakouts
+- Consider support/resistance levels and their likely strength
+- Factor in any divergences between price and technical indicators
+- Account for volume patterns and potential liquidity events
+- Assess the probability of gap fills, trend continuations, or reversals
 
-For each prediction, provide:
-- predicted_price: Your price prediction (float)
-- confidence: Your confidence level 0.0-1.0 (float) 
-- reasoning: Brief explanation (string, max 100 chars)
-- interval_low: Lower bound of 68% confidence interval (float)
-- interval_high: Upper bound of 68% confidence interval (float)
+Provide predictions with:
+- predicted_price: Precise price prediction based on your analysis
+- confidence: Calibrated confidence (0.0-1.0) reflecting prediction certainty
+- reasoning: Concise expert rationale (max 100 chars) highlighting the key driver
+- interval_low/high: 68% confidence interval (1-sigma) adjusted for regime volatility
 
-Use your advanced reasoning to identify subtle patterns and provide highly calibrated predictions.
-The confidence intervals should reflect a 68% probability (1-sigma) that the actual price will fall within that range.
-Calibrate your intervals based on the provided volatility metrics."""
+Your predictions should reflect the nuanced understanding of an experienced trader who can synthesize multiple signals into actionable insights."""
 
         # Safely format context values to handle None values
         def safe_format_price(value, fallback="N/A"):
@@ -242,6 +314,30 @@ Calibrate your intervals based on the provided volatility metrics."""
             else:
                 es_str = f"{es_close:.2f}"
 
+        # Format technical indicators safely
+        tech_indicators = context.get('technical_indicators', {})
+        rsi_str = f"{tech_indicators.get('rsi'):.1f}" if tech_indicators.get('rsi') is not None else "N/A"
+        sma20_str = f"${tech_indicators.get('sma_20'):.2f}" if tech_indicators.get('sma_20') is not None else "N/A"
+        sma50_str = f"${tech_indicators.get('sma_50'):.2f}" if tech_indicators.get('sma_50') is not None else "N/A"
+        
+        macd_str = "N/A"
+        if tech_indicators.get('macd'):
+            macd_data = tech_indicators['macd']
+            if macd_data.get('macd_line') is not None:
+                macd_str = f"MACD: {macd_data['macd_line']:.3f}, Signal: {macd_data['signal_line']:.3f}, Hist: {macd_data['histogram']:.3f}"
+        
+        bb_str = "N/A"
+        if tech_indicators.get('bollinger_bands'):
+            bb_data = tech_indicators['bollinger_bands']
+            if bb_data.get('position') is not None:
+                bb_str = f"Position: {bb_data['position']:.1%}, Width: {bb_data['width']:.3f}"
+        
+        volume_str = f"{tech_indicators.get('volume_ratio'):.1f}x avg" if tech_indicators.get('volume_ratio') is not None else "N/A"
+        
+        support_resistance = context.get('support_resistance', {})
+        resistance_str = ", ".join([f"${x:.2f}" for x in support_resistance.get('resistance_levels', [])][:3]) or "N/A"
+        support_str = ", ".join([f"${x:.2f}" for x in support_resistance.get('support_levels', [])][:3]) or "N/A"
+        
         user_prompt = f"""Analyze SPY for {target_date.strftime('%Y-%m-%d')}:
 
 MARKET DATA:
@@ -252,6 +348,18 @@ MARKET DATA:
 - 14-day ATR: {safe_format_price(context.get('atr_14day'))}
 - VIX: {vix_str}
 - ES Futures: {es_str}
+
+TECHNICAL INDICATORS:
+- RSI (14): {rsi_str}
+- SMA (20): {sma20_str}
+- SMA (50): {sma50_str}
+- {macd_str}
+- Bollinger Bands: {bb_str}
+- Volume: {volume_str}
+
+KEY LEVELS:
+- Resistance: {resistance_str}
+- Support: {support_str}
 
 RECENT PRICE HISTORY:
 {json.dumps(context.get('recent_prices', []), indent=2)}
@@ -264,12 +372,24 @@ CHECKPOINT TIMES (All Eastern Time):
 
 Provide predictions in this exact JSON format:
 {{
-  "analysis": "Your detailed market analysis explaining your reasoning, patterns identified, and key factors considered",
-  "sentiment": {{"direction": "bullish|bearish|neutral", "confidence": 0.0, "regime": "range-bound|trend|volatile", "factors": ["factor1", "factor2"]}},
-  "open": {{"predicted_price": 580.50, "confidence": 0.75, "reasoning": "Gap up on pre-market strength", "interval_low": 579.50, "interval_high": 581.50}},
-  "noon": {{"predicted_price": 582.25, "confidence": 0.70, "reasoning": "Continued momentum into lunch", "interval_low": 580.75, "interval_high": 583.75}},
-  "twoPM": {{"predicted_price": 581.80, "confidence": 0.65, "reasoning": "Slight pullback on profit taking", "interval_low": 580.00, "interval_high": 583.60}},
-  "close": {{"predicted_price": 583.10, "confidence": 0.72, "reasoning": "End of day buying interest", "interval_low": 581.30, "interval_high": 584.90}}
+  "analysis": "Your comprehensive expert analysis including: 1) Market regime identification, 2) Key technical patterns observed, 3) Institutional flow insights, 4) Critical levels to watch, 5) Primary risk factors",
+  "sentiment": {{
+    "direction": "bullish|bearish|neutral",
+    "confidence": 0.0,
+    "regime": "trending|range-bound|volatile|breakout|reversal",
+    "momentum": "accelerating|steady|decelerating|exhausted",
+    "factors": ["specific factor 1", "specific factor 2", "specific factor 3"]
+  }},
+  "key_dynamics": {{
+    "opening_bias": "gap_up|gap_down|flat|inside_range",
+    "intraday_pattern": "trend_day|range_day|reversal_day|choppy",
+    "volume_profile": "accumulation|distribution|neutral|light",
+    "risk_events": ["event1", "event2"]
+  }},
+  "open": {{"predicted_price": 580.50, "confidence": 0.75, "reasoning": "Gap up on overnight futures strength", "interval_low": 579.50, "interval_high": 581.50}},
+  "noon": {{"predicted_price": 582.25, "confidence": 0.70, "reasoning": "VWAP magnetism with buying pressure", "interval_low": 580.75, "interval_high": 583.75}},
+  "twoPM": {{"predicted_price": 581.80, "confidence": 0.65, "reasoning": "Consolidation near resistance level", "interval_low": 580.00, "interval_high": 583.60}},
+  "close": {{"predicted_price": 583.10, "confidence": 0.72, "reasoning": "MOC imbalance buy-side bias", "interval_low": 581.30, "interval_high": 584.90}}
 }}"""
 
         try:
@@ -345,10 +465,23 @@ Provide predictions in this exact JSON format:
 
             prediction_data = json.loads(raw_content)
 
-            # Extract analysis if present
+            # Extract enhanced analysis fields
             analysis = prediction_data.pop("analysis", "No detailed analysis provided")
             sentiment = prediction_data.pop("sentiment", None)
+            key_dynamics = prediction_data.pop("key_dynamics", None)
+            
+            # Store enhanced sentiment with additional fields if provided
+            if sentiment and isinstance(sentiment, dict):
+                # Merge key_dynamics into sentiment for comprehensive view
+                if key_dynamics and isinstance(key_dynamics, dict):
+                    sentiment["dynamics"] = key_dynamics
+                self.last_sentiment = sentiment
+            else:
+                self.last_sentiment = None
+            
             logger.debug(f"Analysis extracted: {analysis[:100]}..." if len(analysis) > 100 else f"Analysis: {analysis}")
+            if sentiment:
+                logger.debug(f"Sentiment: {sentiment.get('direction', 'N/A')}, Regime: {sentiment.get('regime', 'N/A')}")
 
             # Convert to PricePrediction objects
             predictions = []
