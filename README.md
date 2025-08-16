@@ -118,13 +118,43 @@ When the backend is running, view interactive API docs at:
 
 ## Development
 
+### 📚 Comprehensive Documentation
+
+For detailed setup, database management, and deployment guides, see the **[docs/](./docs/)** directory:
+
+- **[PostgreSQL Setup Guide](./docs/POSTGRES_SETUP.md)** - Complete PostgreSQL workflow with Docker
+- **[Database Migration Guide](./docs/DATABASE_MIGRATION_GUIDE.md)** - SQLite ↔ PostgreSQL migration procedures  
+- **[Docker Compose Reference](./docs/DOCKER_COMPOSE_REFERENCE.md)** - Container operations and troubleshooting
+- **[Environment Configuration](./docs/README.md)** - Environment variables and configuration guide
+
 ### Package Managers (Important!)
 - **Frontend:** Use `yarn` (not npm)
 - **Backend:** Use `uv` (not pip)
 
 ### Environment Files
-- Frontend: `.env.local` (PORT=3000)
-- Backend: `backend/.env` (see backend/.env.example)
+- **Main:** `.env` (copy from `.env.example`)
+- **Frontend:** `.env.local` (PORT=3000)  
+- **Backend:** `backend/.env` (copy from `backend/.env.example`)
+
+### Database Options
+
+#### Option 1: SQLite (Quick Testing)
+```bash
+# In .env
+DATABASE_URL=sqlite:///./spy_tracker.db
+./start.sh
+```
+
+#### Option 2: PostgreSQL with Docker (Recommended)
+```bash
+# Automatic setup - start.sh detects and configures everything
+./start.sh
+# OR manual setup
+docker-compose up -d db
+# In .env: DATABASE_URL=postgresql+psycopg2://spy:pass@127.0.0.1:5433/spy
+```
+
+See **[PostgreSQL Setup Guide](./docs/POSTGRES_SETUP.md)** for detailed instructions.
 
 ### Git Workflow
 - All work must be linked to GitHub issues
