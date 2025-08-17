@@ -13,7 +13,8 @@
 - **Best Practices:** @~/.agent-os/standards/best-practices.md
 
 ### Project Management
-- **Active Specs:** @.agent-os/specs/ (no active specs currently - all previous specs completed)
+- **Active Specs:** None - all specs completed, including PostgreSQL migration
+- **Production URL:** https://spy-tracker.onrender.com (**LIVE**)
 - **Spec Planning:** Use `@~/.agent-os/instructions/create-spec.md` for new features
 - **Tasks Execution:** Use `@~/.agent-os/instructions/execute-tasks.md` for implementation
 
@@ -44,20 +45,23 @@ When asked to work on this codebase:
 - **Frontend:** Port 3000 - `yarn dev`
 - **Backend:** Port 8000 - `cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000`
 
-### Database Policy (Dev & Prod)
-- Use Postgres in production and for local development.
-- Local dev connection string example:
-  - `postgresql+psycopg2://spy:pass@localhost:5432/spy`
-- Do not commit `.env` files; prefer `backend/.env` locally.
-- Use per-branch DB names when doing risky changes.
+### Database Policy (Production)
+- **Production:** PostgreSQL on Render (managed service) - **LIVE**
+- **Local Development:** PostgreSQL via Docker (port 5433) or SQLite fallback
+- **Connection:** Set via DATABASE_URL environment variable
+- **Migration Status:** **COMPLETE** - Issue #13 closed August 16, 2025
+- **Historical Data:** 41+ predictions loaded and actively tracking
+- **Environment:** Never commit `.env` files; use `.env.example` as template
 
 ### Current Development Phase
-- **Active:** Phase 5 - Polish & Production
-- **Focus:** Production-ready application with error handling, performance optimization, and deployment configuration
-- **Completed:** Phases 0-4 (Core Day Loop, Suggestions Engine, Performance & Calibration, Data Provider Integration)
-- **Status:** All core MVP features implemented including AI predictions, option suggestions, metrics, and automated data collection
+- **Status:** **LIVE IN PRODUCTION** on Render.com ✅
+- **URL:** https://spy-tracker.onrender.com
+- **Database:** PostgreSQL (Render managed service)
+- **Completed:** Phases 0-6 including PostgreSQL migration
+- **Remaining (Nice-to-have):** PWA configuration, backup/restore endpoints
+- **Active Jobs:** 6 scheduled jobs running successfully (8AM AI predictions verified)
 
-### Key Implemented Features
+### Key Implemented Features (All Working)
 - **Morning Predictions:** Form-based entry of low/high predictions with bias, volatility context, and notes
 - **AI Predictions:** GPT-5 powered price predictions with confidence scoring and reasoning
 - **Automated Data Collection:** Scheduled capture of Open/Noon/2PM/Close prices via yfinance
@@ -69,9 +73,11 @@ When asked to work on this codebase:
 
 ### Key Project Files
 - **Product Requirements:** @SPY-tracker-PRD.md
-- **Backend API:** @backend/app/main.py (comprehensive REST API with 40+ endpoints)
-- **Database Models:** @backend/app/models.py (DailyPrediction, PriceLog, AIPrediction)
-- **Frontend App:** @src/App.tsx (React 19 with TypeScript)
-- **AI System:** @backend/app/ai_predictor.py (GPT-5 integration)
-- **Option Suggestions:** @backend/app/suggestions.py (IC/IB algorithms)
+- **Deployment Status:** @DEPLOYMENT_STATUS.md (production environment details)
+- **Backend API:** @backend/app/main.py (40+ endpoints with full error handling)
+- **Database:** @backend/app/models.py (supports both SQLite and PostgreSQL)
+- **Frontend:** @src/App.tsx (React 19, mobile-optimized, loading states)
+- **AI System:** @backend/app/ai_predictor.py (GPT-5 with technical indicators)
+- **Performance:** @src/utils/performance.ts (caching, debouncing, lazy loading)
+- **Error Handling:** @backend/app/exceptions.py (comprehensive exception system)
 EOF < /dev/null
