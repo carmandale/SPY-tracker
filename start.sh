@@ -57,8 +57,39 @@ if echo "$DATABASE_URL" | grep -qE "127\.0\.0\.1:5433|localhost:5433"; then
                     echo "🐘 Starting existing Postgres container 'spydb'..."
                     docker start spydb >/dev/null
                 fi
+                
+                # Wait for PostgreSQL to be ready
+                echo "⏳ Waiting for PostgreSQL to be ready..."
+                max_wait=30
+                wait_time=0
+                while [ $wait_time -lt $max_wait ]; do
+                    if docker exec spydb pg_isready -U spy -d spy >/dev/null 2>&1; then
+                        echo "✅ PostgreSQL is ready!"
+                        break
+                    fi
+                    sleep 1
+                    wait_time=$((wait_time + 1))
+                    echo -n "."
+                done
+                
+                if [ $wait_time -ge $max_wait ]; then
+                    echo ""
+                    echo "❌ PostgreSQL failed to become ready within ${max_wait} seconds"
+                    echo "📋 Container logs:"
+                    docker logs spydb --tail 10
+                    echo "⚠️  Continuing startup - backend may fail to connect"
+                else
+                    echo ""
+                    echo "🔍 PostgreSQL health check passed"
+                fi
             else
                 echo "🐘 Local Postgres container 'spydb' already running."
+                # Quick health check for existing container
+                if docker exec spydb pg_isready -U spy -d spy >/dev/null 2>&1; then
+                    echo "✅ PostgreSQL health check passed"
+                else
+                    echo "⚠️  PostgreSQL appears to be running but not responding to health checks"
+                fi
             fi
         fi
     else
