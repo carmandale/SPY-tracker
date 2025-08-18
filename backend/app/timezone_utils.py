@@ -154,6 +154,52 @@ def get_market_dates(lookback_days: int = 5) -> Tuple[datetime, datetime]:
     return start_date, end_date
 
 
+def get_current_cst_time() -> datetime:
+    """
+    Get the current time in CST/CDT timezone.
+    
+    Returns:
+        datetime: Current time in Central Time
+    """
+    return datetime.now(CT)
+
+
+def get_next_market_open(current_time: Optional[datetime] = None) -> datetime:
+    """
+    Get the next market open time (8:00 AM CST on weekdays).
+    
+    Args:
+        current_time: Current time to calculate from (defaults to now)
+        
+    Returns:
+        datetime: Next 8:00 AM CST on a weekday
+    """
+    if current_time is None:
+        current_time = get_current_cst_time()
+    
+    # Ensure timezone awareness
+    if current_time.tzinfo is None:
+        current_time = CT.localize(current_time)
+    elif current_time.tzinfo != CT:
+        current_time = current_time.astimezone(CT)
+    
+    # Target is 8:00 AM CST
+    target_time = time(8, 0)
+    
+    # Start with today
+    next_run = current_time.replace(hour=8, minute=0, second=0, microsecond=0)
+    
+    # If it's past 8 AM today, move to tomorrow
+    if current_time.time() >= target_time:
+        next_run = next_run + timedelta(days=1)
+    
+    # Skip weekends (Saturday = 5, Sunday = 6)
+    while next_run.weekday() >= 5:
+        next_run = next_run + timedelta(days=1)
+    
+    return next_run
+
+
 def format_checkpoint_times() -> Dict[str, str]:
     """
     Format all checkpoint times in ET for display.
