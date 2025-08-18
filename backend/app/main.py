@@ -76,7 +76,23 @@ app.include_router(version.router)
 @app.get("/healthz")
 def healthz():
     """Health check endpoint for monitoring."""
-    return {"status": "ok", "app": settings.app_name}
+    # Get scheduler status for health check
+    scheduler_status = {"running": False, "jobs": 0}
+    try:
+        from .routers.version import get_scheduler_status
+        scheduler_info = get_scheduler_status()
+        scheduler_status = {
+            "running": scheduler_info.running,
+            "jobs": scheduler_info.jobs_count
+        }
+    except Exception:
+        pass
+    
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "scheduler": scheduler_status
+    }
 
 
 # Static file serving for frontend (MUST be at the end after all API routes)
