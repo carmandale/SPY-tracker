@@ -14,12 +14,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.4 Enhance health check endpoint with scheduler status
   - [x] 1.5 Verify all backend tests pass
 
-- [ ] 2. Backend Scheduler Integration
-  - [ ] 2.1 Write tests for next prediction time calculation and timezone handling
-  - [ ] 2.2 Create `/api/scheduler/next-prediction` endpoint
-  - [ ] 2.3 Implement accurate next 8:00 AM CST calculation logic
-  - [ ] 2.4 Add weekend skip and holiday handling
-  - [ ] 2.5 Verify all scheduler tests pass
+- [x] 2. Backend Scheduler Integration
+  - [x] 2.1 Write tests for next prediction time calculation and timezone handling
+  - [x] 2.2 Create `/api/scheduler/next-prediction` endpoint
+  - [x] 2.3 Implement accurate next 8:00 AM CST calculation logic
+  - [x] 2.4 Add weekend skip and holiday handling
+  - [x] 2.5 Verify all scheduler tests pass
 
 - [ ] 3. Frontend Countdown Component
   - [ ] 3.1 Write tests for NextPredictionCountdown component and timer logic
