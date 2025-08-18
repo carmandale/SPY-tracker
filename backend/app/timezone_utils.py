@@ -166,14 +166,16 @@ def get_current_cst_time() -> datetime:
 
 def get_next_market_open(current_time: Optional[datetime] = None) -> datetime:
     """
-    Get the next market open time (8:00 AM CST on weekdays).
+    Get the next market open time (8:00 AM CST on trading days).
     
     Args:
         current_time: Current time to calculate from (defaults to now)
         
     Returns:
-        datetime: Next 8:00 AM CST on a weekday
+        datetime: Next 8:00 AM CST on a trading day (non-weekend, non-holiday)
     """
+    from .market_holidays import is_market_holiday
+    
     if current_time is None:
         current_time = get_current_cst_time()
     
@@ -193,8 +195,8 @@ def get_next_market_open(current_time: Optional[datetime] = None) -> datetime:
     if current_time.time() >= target_time:
         next_run = next_run + timedelta(days=1)
     
-    # Skip weekends (Saturday = 5, Sunday = 6)
-    while next_run.weekday() >= 5:
+    # Skip weekends (Saturday = 5, Sunday = 6) and holidays
+    while next_run.weekday() >= 5 or is_market_holiday(next_run.date()):
         next_run = next_run + timedelta(days=1)
     
     return next_run
