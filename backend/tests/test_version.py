@@ -110,7 +110,7 @@ def test_next_prediction_time_calculation(client):
 
 def test_next_prediction_weekend_skip(client):
     """Test that weekends are properly skipped"""
-    with patch('backend.app.timezone_utils.get_current_cst_time') as mock_time:
+    with patch('app.timezone_utils.get_current_cst_time') as mock_time:
         # Test on Friday after 8 AM - should skip to Monday
         mock_time.return_value = datetime(2025, 8, 22, 15, 0, 0)  # Friday 3 PM
         
