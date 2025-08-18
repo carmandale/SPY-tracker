@@ -69,6 +69,7 @@ app.include_router(market.router)
 app.include_router(suggestions.router)
 app.include_router(ai.router)
 app.include_router(scheduler_router.router)
+app.include_router(version.router)
 
 
 # Health check endpoint
