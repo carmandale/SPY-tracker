@@ -99,7 +99,7 @@ def test_next_prediction_time_calculation(client):
     """Test that next prediction time is correctly calculated"""
     import pytz
     CT = pytz.timezone('America/Chicago')
-    with patch('app.timezone_utils.get_current_cst_time') as mock_time:
+    with patch('app.routers.version.get_current_cst_time') as mock_time:
         # Test on a weekday at 7 AM CST - should be 8 AM same day
         mock_time.return_value = CT.localize(datetime(2025, 8, 19, 7, 0, 0))  # Tuesday 7 AM CST
         
