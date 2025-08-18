@@ -7,12 +7,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-- [ ] 1. Backend Version API Implementation
-  - [ ] 1.1 Write tests for version endpoint and response structure
-  - [ ] 1.2 Create `/api/version` endpoint in FastAPI with environment detection
-  - [ ] 1.3 Add package.json version reading and deployment metadata
-  - [ ] 1.4 Enhance health check endpoint with scheduler status
-  - [ ] 1.5 Verify all backend tests pass
+- [x] 1. Backend Version API Implementation
+  - [x] 1.1 Write tests for version endpoint and response structure
+  - [x] 1.2 Create `/api/version` endpoint in FastAPI with environment detection
+  - [x] 1.3 Add package.json version reading and deployment metadata
+  - [x] 1.4 Enhance health check endpoint with scheduler status
+  - [x] 1.5 Verify all backend tests pass
 
 - [ ] 2. Backend Scheduler Integration
   - [ ] 2.1 Write tests for next prediction time calculation and timezone handling
