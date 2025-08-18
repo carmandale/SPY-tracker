@@ -30,6 +30,7 @@ from .routers import (
     suggestions,
     ai,
     scheduler as scheduler_router,
+    version,
 )
 
 # Create FastAPI app
