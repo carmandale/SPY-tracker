@@ -181,6 +181,8 @@ async def get_version():
 @router.get("/scheduler/next-prediction", response_model=NextPredictionResponse)
 async def get_next_prediction_time():
     """Get the next scheduled AI prediction time"""
+    from ..market_holidays import is_market_holiday, get_holiday_name
+    
     current_time = get_current_cst_time()
     next_run = get_next_market_open(current_time)
     
@@ -197,11 +199,15 @@ async def get_next_prediction_time():
     else:
         time_until = f"{minutes} minute{'s' if minutes != 1 else ''}"
     
-    # Determine market status
+    # Determine market status and holiday info
     weekday = current_time.weekday()
     is_weekend = weekday >= 5  # Saturday = 5, Sunday = 6
+    is_holiday = is_market_holiday(current_time.date())
+    holiday_name = get_holiday_name(current_time.date()) if is_holiday else None
     
-    if is_weekend:
+    if is_holiday:
+        market_status = f"holiday ({holiday_name})" if holiday_name else "holiday"
+    elif is_weekend:
         market_status = "weekend"
     elif current_time.hour < 8:
         market_status = "closed"
@@ -221,7 +227,7 @@ async def get_next_prediction_time():
         time_until=time_until,
         market_status=market_status,
         is_weekend=is_weekend,
-        is_holiday=False  # TODO: Implement holiday detection
+        is_holiday=is_holiday
     )
 
 
