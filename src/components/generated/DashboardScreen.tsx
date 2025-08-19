@@ -62,9 +62,12 @@ export function DashboardScreen() {
           timeZone: 'America/Chicago'
         });
 
+        console.log('Dashboard: Fetching data for date:', today);
         try {
           const data = await api.getPrediction(today);
-          console.log('Dashboard: Raw data from /day endpoint:', data);
+          console.log('Dashboard: ✅ SUCCESS - Raw data from /day endpoint:', data);
+          console.log('Dashboard: Data type:', typeof data);
+          console.log('Dashboard: Data keys:', Object.keys(data || {}));
           console.log('Dashboard: predLow=', data.predLow, 'predHigh=', data.predHigh);
           
           // Update prediction data  
