@@ -129,12 +129,24 @@ export async function apiRequest<T>(
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        // If response is not JSON, try to get text
+        try {
+          const text = await response.text();
+          errorData = { error: { message: text || response.statusText } };
+        } catch {
+          errorData = { error: { message: response.statusText || `HTTP error! status: ${response.status}` } };
+        }
+      }
+      
       throw {
         response: {
           status: response.status,
           statusText: response.statusText,
-          data: error,
+          data: errorData,
         },
       };
     }
