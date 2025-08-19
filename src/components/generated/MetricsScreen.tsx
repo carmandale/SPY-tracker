@@ -71,26 +71,26 @@ export function MetricsScreen() {
   }];
   const performanceMetrics: PerformanceMetric[] = [{
     label: 'Range Hit Rate',
-    value: '73%',
+    value: `${rangeHitRate}%`,
     change: +5.2,
     icon: Target,
     color: 'text-[#16A34A]'
   }, {
     label: 'Median Abs Error',
-    value: '$1.25',
+    value: `$${medianAbsError.toFixed(2)}`,
     change: -0.15,
     icon: TrendingUp,
     color: 'text-[#E8ECF2]'
   }, {
-    label: 'Avg Range Width',
-    value: '$4.75',
-    change: +0.25,
-    icon: BarChart3,
+    label: 'Accuracy Grade',
+    value: accuracyGrade,
+    change: 0,
+    icon: Award,
     color: 'text-[#006072]'
   }, {
     label: 'Total Predictions',
-    value: '47',
-    change: +12,
+    value: totalPredictions.toString(),
+    change: 0,
     icon: Calendar,
     color: 'text-[#A7B3C5]'
   }];
