@@ -104,7 +104,7 @@ describe('NextPredictionCountdown', () => {
     })
 
     // Update the mock for the next call
-    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue({
+    mockGetNextPredictionTime.mockResolvedValue({
       ...mockResponse,
       time_until: '2 hours, 29 minutes'
     })
