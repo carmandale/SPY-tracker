@@ -64,7 +64,7 @@ export function VersionFooter() {
 	}[version.environment] || 'text-gray-400';
 
 	// Create changelog link
-	const changelogLink = version.commit !== 'unknown' 
+	const changelogLink = version.commit && version.commit !== 'unknown' 
 		? `https://github.com/user/SPY-tracker/commit/${version.commit.substring(0, 7)}`
 		: '#';
 
