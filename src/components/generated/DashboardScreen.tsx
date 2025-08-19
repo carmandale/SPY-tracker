@@ -107,9 +107,12 @@ export function DashboardScreen() {
             }
             return { ...item, price };
           }));
-        } catch (manualError) {
+        } catch (manualError: any) {
           // No manual data, try AI predictions
+          console.log('Dashboard: Error fetching manual data:', manualError);
           console.log('No manual data found, fetching AI predictions...');
+          const errorMsg = manualError?.message || manualError?.response?.data?.error?.message || 'Unknown error';
+          setError(`Failed to load data: ${errorMsg}`);
           try {
             const aiData = await api.getAIPredictions(today);
             console.log('AI predictions received:', aiData);
