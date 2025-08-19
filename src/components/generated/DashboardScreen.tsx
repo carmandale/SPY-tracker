@@ -36,6 +36,7 @@ export function DashboardScreen() {
   const [dataSource, setDataSource] = useState<string>('Loading...');
   const [locked, setLocked] = useState<boolean>(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [predictionTimestamp, setPredictionTimestamp] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
