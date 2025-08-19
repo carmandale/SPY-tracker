@@ -26,6 +26,7 @@ interface OptionsSetup {
   targetCredit: string;
 }
 export function DashboardScreen() {
+  console.log('🚀 DashboardScreen component mounting');
   const [prediction, setPrediction] = useState<PredictionData>({
     low: 0,
     high: 0,
