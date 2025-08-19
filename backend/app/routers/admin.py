@@ -574,3 +574,147 @@ def get_price_capture_status(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get capture status: {str(e)}")
+
+
+# EMERGENCY RECOVERY ENDPOINTS
+
+@router.post("/recovery/database")
+def recover_database():
+    """Emergency database recovery endpoint - fixes stuck transactions."""
+    try:
+        logger.info("Starting emergency database recovery...")
+        
+        # Step 1: Dispose current connection pool
+        engine.dispose()
+        logger.info("Connection pool disposed")
+        
+        # Step 2: Try to rollback any stuck transactions (PostgreSQL only)
+        if not str(engine.url).startswith("sqlite"):
+            try:
+                with engine.connect() as conn:
+                    # Get stuck transactions
+                    result = conn.execute(text("""
+                        SELECT pid, state
+                        FROM pg_stat_activity
+                        WHERE state IN ('idle in transaction', 'idle in transaction (aborted)')
+                        AND pid <> pg_backend_pid()
+                    """))
+                    
+                    stuck = result.fetchall()
+                    if stuck:
+                        for pid, state in stuck:
+                            try:
+                                conn.execute(text(f"SELECT pg_terminate_backend({pid})"))
+                                logger.info(f"Terminated stuck transaction PID {pid}")
+                            except Exception as e:
+                                logger.error(f"Failed to terminate PID {pid}: {e}")
+                    
+                    conn.commit()
+            except Exception as e:
+                logger.warning(f"Transaction cleanup warning: {e}")
+        
+        # Step 3: Test new connection
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            if result.scalar() != 1:
+                raise Exception("Connection test failed")
+        
+        logger.info("Database recovery successful")
+        return {
+            "status": "success",
+            "message": "Database recovered successfully",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Database recovery failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Recovery failed: {str(e)}")
+
+
+@router.post("/recovery/predictions")
+def recover_predictions(
+    start_date: date,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    """Generate missing predictions for specified dates."""
+    try:
+        if not end_date:
+            end_date = start_date
+        
+        # Get list of dates to process
+        dates_to_process = []
+        current_date = start_date
+        while current_date <= end_date:
+            # Skip weekends
+            if current_date.weekday() < 5:  # Monday = 0, Friday = 4
+                dates_to_process.append(current_date)
+            current_date += timedelta(days=1)
+        
+        results = []
+        
+        for target_date in dates_to_process:
+            # Check if prediction exists
+            existing = db.query(DailyPrediction).filter(
+                DailyPrediction.date == target_date
+            ).first()
+            
+            if existing and existing.predLow and existing.predHigh:
+                results.append({
+                    "date": target_date.isoformat(),
+                    "status": "exists",
+                    "message": "Prediction already exists"
+                })
+                continue
+            
+            try:
+                # Get pre-market price
+                pre_market = default_provider.get_price("SPY")
+                
+                # Generate AI predictions
+                ai_result = ai_predictor.generate_predictions(target_date)
+                
+                # Create or update daily prediction
+                if not existing:
+                    existing = DailyPrediction(date=target_date)
+                    db.add(existing)
+                
+                # Set values from AI predictions
+                existing.preMarket = pre_market
+                existing.source = "ai_recovery"
+                
+                # Extract predicted ranges
+                for pred in ai_result.predictions:
+                    if pred.checkpoint == "open":
+                        existing.predLow = pred.predicted_price * 0.995
+                        existing.predHigh = pred.predicted_price * 1.005
+                
+                db.commit()
+                
+                results.append({
+                    "date": target_date.isoformat(),
+                    "status": "generated",
+                    "message": "AI predictions generated successfully",
+                    "predLow": existing.predLow,
+                    "predHigh": existing.predHigh
+                })
+                
+            except Exception as e:
+                logger.error(f"Failed to generate predictions for {target_date}: {e}")
+                db.rollback()
+                results.append({
+                    "date": target_date.isoformat(),
+                    "status": "failed",
+                    "message": f"Failed: {str(e)}"
+                })
+        
+        return {
+            "dates_processed": len(dates_to_process),
+            "success": sum(1 for r in results if r["status"] in ["generated", "baseline"]),
+            "failed": sum(1 for r in results if r["status"] == "failed"),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Prediction recovery failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Recovery failed: {str(e)}")
