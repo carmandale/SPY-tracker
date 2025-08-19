@@ -38,6 +38,8 @@ def get_ai_predictions_endpoint(target_date: date, db: Session = Depends(get_db)
             refresh_actuals_for_date(db, target_date)
     except Exception as e:
         logger.warning(f"Could not refresh actuals for {target_date}: {e}")
+        # Rollback to clear any transaction error state in PostgreSQL
+        db.rollback()
     
     try:
         return get_ai_predictions_for_date(target_date, db)
