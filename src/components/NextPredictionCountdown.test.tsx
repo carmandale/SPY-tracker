@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { NextPredictionCountdown } from './NextPredictionCountdown'
 
-// Mock the API client
+// Create mock functions
 const mockGetNextPredictionTime = vi.fn()
-vi.mock('../utils/apiClient', () => ({
-  apiClient: {
-    getNextPredictionTime: () => mockGetNextPredictionTime()
+
+// Mock the entire apiClient module
+vi.mock('../utils/apiClient', () => {
+  return {
+    apiClient: {
+      getNextPredictionTime: mockGetNextPredictionTime
+    }
   }
-}))
+})
 
 describe('NextPredictionCountdown', () => {
   beforeEach(() => {
@@ -37,7 +41,9 @@ describe('NextPredictionCountdown', () => {
 
     mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
-    render(<NextPredictionCountdown />)
+    await act(async () => {
+      render(<NextPredictionCountdown />)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/next prediction/i)).toBeInTheDocument()
@@ -57,7 +63,9 @@ describe('NextPredictionCountdown', () => {
 
     mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
-    render(<NextPredictionCountdown />)
+    await act(async () => {
+      render(<NextPredictionCountdown />)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/market closed/i)).toBeInTheDocument()
@@ -77,7 +85,9 @@ describe('NextPredictionCountdown', () => {
 
     mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
-    render(<NextPredictionCountdown />)
+    await act(async () => {
+      render(<NextPredictionCountdown />)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/holiday/i)).toBeInTheDocument()
@@ -97,7 +107,9 @@ describe('NextPredictionCountdown', () => {
 
     mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
-    render(<NextPredictionCountdown />)
+    await act(async () => {
+      render(<NextPredictionCountdown />)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/2 hours, 30 minutes/i)).toBeInTheDocument()
@@ -110,7 +122,9 @@ describe('NextPredictionCountdown', () => {
     })
 
     // Advance timer by 1 minute
-    vi.advanceTimersByTime(60 * 1000)
+    await act(async () => {
+      vi.advanceTimersByTime(60 * 1000)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/2 hours, 29 minutes/i)).toBeInTheDocument()
@@ -122,7 +136,9 @@ describe('NextPredictionCountdown', () => {
       new Error('Network error')
     )
 
-    render(<NextPredictionCountdown />)
+    await act(async () => {
+      render(<NextPredictionCountdown />)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/unable to load/i)).toBeInTheDocument()
@@ -141,7 +157,9 @@ describe('NextPredictionCountdown', () => {
 
     mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
-    render(<NextPredictionCountdown />)
+    await act(async () => {
+      render(<NextPredictionCountdown />)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(/market open/i)).toBeInTheDocument()
