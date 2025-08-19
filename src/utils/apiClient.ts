@@ -53,6 +53,15 @@ export interface DayResponse {
   updated_at?: string | null;
 }
 
+export interface NextPredictionResponse {
+  next_run: string;
+  next_run_cst: string;
+  time_until: string;
+  market_status: string;
+  is_weekend: boolean;
+  is_holiday: boolean;
+}
+
 type SuggestionsResponse = JsonObject;
 type MetricsResponse = JsonObject;
 type HistoryResponse = JsonObject;
