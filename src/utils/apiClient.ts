@@ -120,6 +120,7 @@ export async function apiRequest<T>(
 
   // Make the request with performance monitoring
   const makeRequest = async () => {
+    console.log(`API: Fetching ${url}`);
     const response = await fetch(url, {
       ...fetchOptions,
       headers: {
