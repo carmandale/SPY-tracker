@@ -38,6 +38,7 @@ export function HistoryScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalPrediction[]>([]);
+  const [loadingAI, setLoadingAI] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch historical data from new history endpoint
