@@ -113,7 +113,11 @@ export function DashboardScreen() {
           }));
         } catch (manualError: any) {
           // No manual data, try AI predictions
-          console.log('Dashboard: Error fetching manual data:', manualError);
+          console.error('Dashboard: ❌ ERROR fetching /day endpoint:', manualError);
+          console.error('Dashboard: Error type:', typeof manualError);
+          console.error('Dashboard: Error message:', manualError?.message);
+          console.error('Dashboard: Error response:', manualError?.response);
+          console.error('Dashboard: Full error object:', manualError);
           console.log('No manual data found, fetching AI predictions...');
           const errorMsg = manualError?.message || manualError?.response?.data?.error?.message || 'Unknown error';
           setError(`Failed to load data: ${errorMsg}`);
