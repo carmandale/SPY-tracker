@@ -12,7 +12,15 @@ export function VersionFooter() {
 			try {
 				setLoading(true);
 				const data = await apiClient.getVersion();
-				setVersion(data);
+				// Map the API response to the expected format (handle both old and new API structures)
+				const mappedVersion = {
+					version: data.version || '0.1.0',
+					commit: (data as any).deployment?.commit || data.commit || undefined,
+					environment: data.environment || 'production',
+					deployment_date: (data as any).deployment?.timestamp || data.deployment_date || new Date().toISOString(),
+					build_number: (data as any).deployment?.build_number || data.build_number || 'unknown'
+				};
+				setVersion(mappedVersion);
 				setError(null);
 			} catch (err) {
 				console.error('Failed to fetch version:', err);
