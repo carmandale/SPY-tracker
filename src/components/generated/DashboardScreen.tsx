@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus, RotateCcw, RefreshCw } from 'lucide-re
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import { SuggestionCards } from './SuggestionCards';
 import { api } from '../../utils/apiClient';
+import { NextPredictionCountdown } from '../NextPredictionCountdown';
 interface PredictionData {
   low: number;
   high: number;
