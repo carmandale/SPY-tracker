@@ -30,6 +30,7 @@ from .routers import (
     suggestions,
     ai,
     scheduler as scheduler_router,
+    version,
 )
 
 # Create FastAPI app
@@ -68,13 +69,30 @@ app.include_router(market.router)
 app.include_router(suggestions.router)
 app.include_router(ai.router)
 app.include_router(scheduler_router.router)
+app.include_router(version.router)
 
 
 # Health check endpoint
 @app.get("/healthz")
 def healthz():
     """Health check endpoint for monitoring."""
-    return {"status": "ok", "app": settings.app_name}
+    # Get scheduler status for health check
+    scheduler_status = {"running": False, "jobs": 0}
+    try:
+        from .routers.version import get_scheduler_status
+        scheduler_info = get_scheduler_status()
+        scheduler_status = {
+            "running": scheduler_info.running,
+            "jobs": scheduler_info.jobs_count
+        }
+    except Exception:
+        pass
+    
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "scheduler": scheduler_status
+    }
 
 
 # Static file serving for frontend (MUST be at the end after all API routes)

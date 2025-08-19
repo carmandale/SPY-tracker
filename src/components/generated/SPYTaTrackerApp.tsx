@@ -5,6 +5,7 @@ import { DashboardScreen } from './DashboardScreen';
 import { PredictScreen } from './PredictScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { MetricsScreen } from './MetricsScreen';
+import { VersionFooter } from '../VersionFooter';
 type Screen = 'dashboard' | 'predict' | 'history' | 'metrics';
 export function SPYTaTrackerApp() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
@@ -97,5 +98,6 @@ export function SPYTaTrackerApp() {
           {renderScreen()}
         </motion.div>
       </main>
+      <VersionFooter />
     </div>;
 }

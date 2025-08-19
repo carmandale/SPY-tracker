@@ -53,6 +53,37 @@ export interface DayResponse {
   updated_at?: string | null;
 }
 
+export interface NextPredictionResponse {
+  next_prediction_time: string;
+  hours_until: number;
+  minutes_until: number;
+  is_market_open: boolean;
+  current_time: string;
+  timezone: string;
+  next_run_date: string;
+  is_weekend: boolean;
+  is_holiday: boolean;
+  holiday_name: string | null;
+  market_status: string;
+}
+
+export interface VersionResponse {
+  version: string;
+  commit: string;
+  environment: string;
+  deployment_date: string;
+  build_number: string;
+}
+
+export interface ChangelogResponse {
+  content: string;
+  versions: Array<{
+    version: string;
+    date: string;
+    changes: string[];
+  }>;
+}
+
 type SuggestionsResponse = JsonObject;
 type MetricsResponse = JsonObject;
 type HistoryResponse = JsonObject;
@@ -98,12 +129,24 @@ export async function apiRequest<T>(
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        // If response is not JSON, try to get text
+        try {
+          const text = await response.text();
+          errorData = { error: { message: text || response.statusText } };
+        } catch {
+          errorData = { error: { message: response.statusText || `HTTP error! status: ${response.status}` } };
+        }
+      }
+      
       throw {
         response: {
           status: response.status,
           statusText: response.statusText,
-          data: error,
+          data: errorData,
         },
       };
     }
@@ -230,12 +273,36 @@ export const api = {
     });
   },
 
+  // Scheduler
+  async getNextPredictionTime() {
+    return apiRequest<NextPredictionResponse>('/api/scheduler/next-prediction', {
+      cacheTTL: 30000, // Cache for 30 seconds
+    });
+  },
+
+  // Version and deployment info
+  async getVersion() {
+    return apiRequest<VersionResponse>('/api/version', {
+      cacheTTL: 300000, // Cache for 5 minutes
+    });
+  },
+
+  // Changelog
+  async getChangelog() {
+    return apiRequest<ChangelogResponse>('/api/changelog', {
+      cacheTTL: 300000, // Cache for 5 minutes
+    });
+  },
+
   // Clear cache
   clearCache() {
     apiCache.clear();
     console.log('🧹 API cache cleared');
   },
 };
+
+// Export apiClient for component usage
+export const apiClient = api;
 
 /**
  * Prefetch critical data on app load
