@@ -118,7 +118,7 @@ describe('NextPredictionCountdown', () => {
   })
 
   it('handles API errors gracefully', async () => {
-    vi.mocked(apiClient.getNextPredictionTime).mockRejectedValue(
+    mockGetNextPredictionTime.mockRejectedValue(
       new Error('Network error')
     )
 
