@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+# Store last database error for debugging
+last_db_error = None
 
 def _update_derived_fields(pred: DailyPrediction) -> None:
     """Update absErrorToClose and rangeHit based on current data"""
