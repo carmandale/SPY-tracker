@@ -94,6 +94,18 @@ export function DashboardScreen() {
               setDataSource('📊 Prediction');
             }
             setLocked(!!data.locked);
+            
+            // Set prediction timestamp
+            if (data.created_at) {
+              const timestamp = new Date(data.created_at);
+              const timeStr = timestamp.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                timeZone: 'America/Chicago'
+              });
+              setPredictionTimestamp(timeStr);
+              console.log('Dashboard: Prediction created at:', timeStr);
+            }
           } else {
             console.log('Dashboard: predLow or predHigh missing, not setting prediction');
             console.log('Dashboard: predLow is falsy?', !data.predLow, 'predHigh is falsy?', !data.predHigh);
