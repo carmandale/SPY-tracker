@@ -162,22 +162,58 @@ export function MetricsScreen() {
     predictions: 2,
     accuracy: 50
   }] as any[];
-  const calibrationTips = [{
-    type: 'success',
-    title: 'Strong Performance',
-    message: 'Your bullish predictions are highly accurate. Keep leveraging technical analysis.',
-    icon: Award
-  }, {
-    type: 'warning',
-    title: 'FOMC Challenges',
-    message: 'Consider wider ranges on Fed days. Volatility often exceeds expectations.',
-    icon: AlertTriangle
-  }, {
-    type: 'info',
-    title: 'Range Optimization',
-    message: 'Your ranges are slightly narrow. Expanding by 10-15% could improve hit rate.',
-    icon: Info
-  }] as any[];
+  const calibrationTips = React.useMemo(() => {
+    const tips = [];
+    
+    // Add main calibration tip from API
+    if (calibrationTip) {
+      tips.push({
+        type: rangeHitRate >= 70 ? 'success' : rangeHitRate >= 50 ? 'info' : 'warning',
+        title: 'Current Calibration',
+        message: calibrationTip,
+        icon: rangeHitRate >= 70 ? Award : AlertTriangle
+      });
+    }
+    
+    // Add performance-based tip
+    if (rangeHitRate >= 75) {
+      tips.push({
+        type: 'success',
+        title: 'Excellent Accuracy',
+        message: 'Your predictions are highly accurate. Maintain current approach.',
+        icon: Award
+      });
+    } else if (rangeHitRate < 50) {
+      tips.push({
+        type: 'warning',
+        title: 'Accuracy Needs Improvement',
+        message: 'Consider widening your range predictions or adjusting bias assessment.',
+        icon: AlertTriangle
+      });
+    }
+    
+    // Add error-based tip
+    if (medianAbsError > 2.0) {
+      tips.push({
+        type: 'info',
+        title: 'Error Reduction',
+        message: `Median error of $${medianAbsError.toFixed(2)} is high. Focus on key support/resistance levels.`,
+        icon: Info
+      });
+    }
+    
+    // Default tip if no others
+    if (tips.length === 0) {
+      tips.push({
+        type: 'info',
+        title: 'Loading Metrics',
+        message: 'Gathering calibration data. Keep making predictions to improve accuracy.',
+        icon: Info
+      });
+    }
+    
+    return tips;
+  }, [calibrationTip, rangeHitRate, medianAbsError]);
   const getTipColor = (type: string) => {
     switch (type) {
       case 'success':
