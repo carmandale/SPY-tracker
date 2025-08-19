@@ -109,7 +109,9 @@ def get_day(day: date, db: Session = Depends(get_db)):
         if day == date.today():
             refresh_actuals_for_date(db, day)
     except Exception:
-        pass
+        # If refresh fails, rollback the transaction to clear any error state
+        # This prevents "current transaction is aborted" errors in PostgreSQL
+        db.rollback()
 
     pred = db.query(DailyPrediction).filter(DailyPrediction.date == day).first()
     if pred is None:
