@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event, pool
+from sqlalchemy import create_engine, event, pool, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
 from contextlib import contextmanager
@@ -97,7 +97,7 @@ def get_db():
     db = SessionLocal()
     try:
         # Verify connection is working
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         yield db
         db.commit()  # Commit any pending transactions
     except OperationalError as e:
