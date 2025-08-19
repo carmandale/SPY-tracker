@@ -67,9 +67,10 @@ export function DashboardScreen() {
           console.log('Dashboard: Raw data from /day endpoint:', data);
           console.log('Dashboard: predLow=', data.predLow, 'predHigh=', data.predHigh);
           
-          // Update prediction data
+          // Update prediction data  
           if (data.predLow && data.predHigh) {
             console.log('Dashboard: Setting prediction data');
+            setError(null); // Clear any previous errors
             setPrediction({
               low: data.predLow,
               high: data.predHigh,
