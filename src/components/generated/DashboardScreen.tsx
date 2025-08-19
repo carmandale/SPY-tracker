@@ -289,6 +289,11 @@ export function DashboardScreen() {
                 <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full font-medium">
                   {dataSource}
                 </span>
+                {predictionTimestamp && (
+                  <span className="text-xs text-gray-400">
+                    @ {predictionTimestamp} CST
+                  </span>
+                )}
                 {locked && (
                   <span className="ml-2 px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">
                     Locked
