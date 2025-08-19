@@ -35,7 +35,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
+    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
     render(<NextPredictionCountdown />)
 
@@ -55,7 +55,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
+    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
     render(<NextPredictionCountdown />)
 
@@ -75,7 +75,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: true
     }
 
-    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
+    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
     render(<NextPredictionCountdown />)
 
@@ -95,7 +95,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
+    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
     render(<NextPredictionCountdown />)
 
@@ -139,7 +139,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
+    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
 
     render(<NextPredictionCountdown />)
 
