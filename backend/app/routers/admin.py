@@ -33,6 +33,34 @@ def _update_derived_fields(pred: DailyPrediction) -> None:
         pred.rangeHit = bool(pred.predLow <= pred.close <= pred.predHigh)
 
 
+@router.get("/debug/last-error")
+def get_last_database_error():
+    """Get the last database error for debugging."""
+    global last_db_error
+    if last_db_error:
+        return {"error": str(last_db_error), "timestamp": datetime.now().isoformat()}
+    return {"error": None, "status": "No errors recorded"}
+
+
+@router.get("/debug/test-db")
+def test_database_connection():
+    """Test database connection directly."""
+    from ..database import SessionLocal
+    from sqlalchemy import select, text
+    
+    try:
+        db = SessionLocal()
+        # Try the safe select(1) query
+        result = db.execute(select(1)).scalar()
+        db.close()
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        global last_db_error
+        last_db_error = str(e)
+        logger.error(f"Database test failed: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 @router.post("/backfill-actuals/{target_date}")
 def backfill_actuals_for_day(target_date: date, db: Session = Depends(get_db)):
     """Backfill actual Open/Noon/2PM/Close prices for a given date using yfinance.
