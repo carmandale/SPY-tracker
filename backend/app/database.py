@@ -97,7 +97,8 @@ def get_db():
     db = SessionLocal()
     try:
         # Verify connection is working
-        db.execute(text("SELECT 1"))
+        from sqlalchemy import select
+        db.execute(select(1))
         yield db
         db.commit()  # Commit any pending transactions
     except OperationalError as e:
