@@ -1,20 +1,24 @@
 """
 Administrative endpoints for SPY Tracker.
-Handles data backfilling, migrations, cleanup, and maintenance operations.
+Handles data backfilling, migrations, cleanup, maintenance operations, and emergency recovery.
 """
 
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query, BackgroundTasks
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import yfinance as yf
+import logging
 
-from ..database import get_db
+from ..database import get_db, engine
 from ..models import DailyPrediction, AIPrediction, PriceLog
 from ..config import settings
 from ..capture import refresh_actuals_for_date
-from ..ai_predictor import AIPredictor
+from ..ai_predictor import AIPredictor, ai_predictor
 from ..providers import default_provider
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
