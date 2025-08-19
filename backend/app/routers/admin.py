@@ -61,6 +61,54 @@ def test_database_connection():
         return {"status": "error", "error": str(e)}
 
 
+@router.get("/debug/day-error/{day}")
+def debug_day_endpoint_with_traceback(day: date, db: Session = Depends(get_db)):
+    """Debug the /day/{day} endpoint and capture full Python traceback if there's an exception."""
+    import traceback
+    import sys
+    
+    try:
+        # Execute the exact same logic as the /day/{day} endpoint
+        from ..routers.predictions import get_day
+        result = get_day(day, db)
+        return {
+            "status": "success",
+            "message": f"Day endpoint worked successfully for {day.isoformat()}",
+            "data": result
+        }
+        
+    except Exception as e:
+        # Capture full traceback
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        tb_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        full_traceback = ''.join(tb_lines)
+        
+        # Log it for server logs
+        logger.error(f"Day endpoint debug failed for {day.isoformat()}:\n{full_traceback}")
+        
+        # Store for debugging
+        global last_db_error
+        last_db_error = full_traceback
+        
+        # Return detailed error info for debugging
+        return {
+            "status": "error",
+            "date": day.isoformat(),
+            "endpoint": f"/day/{day}",
+            "error_type": exc_type.__name__ if exc_type else "Unknown",
+            "error_message": str(e),
+            "traceback": full_traceback,
+            "traceback_lines": tb_lines,  # Also provide as array for easier parsing
+            "hint": "Check the traceback above for the exact line causing the 500 error",
+            "debug_info": {
+                "function_called": "get_day",
+                "module": "routers.predictions",
+                "parameters": {"day": day.isoformat()},
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+
+
 @router.get("/debug/test-endpoint/{endpoint:path}")
 def test_endpoint_with_traceback(endpoint: str, db: Session = Depends(get_db)):
     """Test any endpoint and capture full traceback if it fails."""
@@ -75,8 +123,8 @@ def test_endpoint_with_traceback(endpoint: str, db: Session = Depends(get_db)):
             target_date = date_type.fromisoformat(date_str)
             
             # Try to execute the same logic as /day/{date} endpoint
-            from ..routers.predictions import get_day_data
-            result = get_day_data(target_date, db)
+            from ..routers.predictions import get_day
+            result = get_day(target_date, db)
             return {"status": "success", "data": result}
             
         elif endpoint.startswith("ai/predictions/"):
