@@ -22,6 +22,40 @@ export function MetricsScreen() {
   const [accuracyGrade, setAccuracyGrade] = useState<string>('B+');
   const [totalPredictions, setTotalPredictions] = useState<number>(47);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // Load real metrics from API
+  useEffect(() => {
+    const loadMetrics = async () => {
+      setIsLoading(true);
+      try {
+        const metrics = await api.getMetrics();
+        
+        // Update metrics from API response
+        if (typeof metrics.rangeHit20 === 'number') {
+          setRangeHitRate(Math.round(metrics.rangeHit20 * 100));
+        }
+        if (typeof metrics.medianAbsErr20 === 'number') {
+          setMedianAbsError(metrics.medianAbsErr20);
+        }
+        if (metrics.calibration_tip) {
+          setCalibrationTip(metrics.calibration_tip);
+        }
+        if (metrics.accuracy_grade) {
+          setAccuracyGrade(metrics.accuracy_grade);
+        }
+        if (typeof metrics.count_days === 'number') {
+          setTotalPredictions(metrics.count_days);
+        }
+      } catch (error) {
+        console.error('Failed to load metrics:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadMetrics();
+  }, []);
+  
   const periods: MetricsPeriod[] = [{
     value: '7d',
     label: '7D'
