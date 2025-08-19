@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Target, Calendar, BarChart3, Award, AlertTriangle, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { api } from '../../utils/apiClient';
 interface MetricsPeriod {
   value: '7d' | '30d' | '90d' | 'all';
   label: string;
