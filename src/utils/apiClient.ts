@@ -239,6 +239,13 @@ export const api = {
     });
   },
 
+  // Scheduler
+  async getNextPredictionTime() {
+    return apiRequest<NextPredictionResponse>('/api/scheduler/next-prediction', {
+      cacheTTL: 30000, // Cache for 30 seconds
+    });
+  },
+
   // Clear cache
   clearCache() {
     apiCache.clear();
