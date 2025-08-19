@@ -361,7 +361,13 @@ export function HistoryScreen() {
       }} transition={{
         delay: index * 0.1
       }} className="bg-[#12161D] rounded-xl border border-white/8 overflow-hidden">
-            <button onClick={() => setExpandedCard(expandedCard === prediction.id ? null : prediction.id)} className="w-full p-4 text-left hover:bg-white/2 transition-colors">
+            <button onClick={() => {
+              const isExpanding = expandedCard !== prediction.id;
+              setExpandedCard(isExpanding ? prediction.id : null);
+              if (isExpanding) {
+                fetchAIPredictions(prediction);
+              }
+            }} className="w-full p-4 text-left hover:bg-white/2 transition-colors">
               {/* Header with enhanced status indicators */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
