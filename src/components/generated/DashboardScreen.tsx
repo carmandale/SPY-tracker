@@ -85,10 +85,12 @@ export function DashboardScreen() {
               notes: data.notes || 'No notes available'
             });
             // Set badge based on source/locked
-            if (data.source === 'ai') {
+            if (data.source === 'ai' || data.source === 'ai_recovery') {
               setDataSource('🤖 AI Prediction');
-            } else {
+            } else if (data.source) {
               setDataSource('📝 Manual Prediction');
+            } else {
+              setDataSource('📊 Prediction');
             }
             setLocked(!!data.locked);
           } else {
