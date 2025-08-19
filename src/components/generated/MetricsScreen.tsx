@@ -16,6 +16,12 @@ interface PerformanceMetric {
 }
 export function MetricsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const [rangeHitRate, setRangeHitRate] = useState<number>(73);
+  const [medianAbsError, setMedianAbsError] = useState<number>(1.25);
+  const [calibrationTip, setCalibrationTip] = useState<string>('');
+  const [accuracyGrade, setAccuracyGrade] = useState<string>('B+');
+  const [totalPredictions, setTotalPredictions] = useState<number>(47);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const periods: MetricsPeriod[] = [{
     value: '7d',
     label: '7D'
