@@ -3,13 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { NextPredictionCountdown } from './NextPredictionCountdown'
 
 // Mock the API client
+const mockGetNextPredictionTime = vi.fn()
 vi.mock('../utils/apiClient', () => ({
   apiClient: {
-    getNextPredictionTime: vi.fn()
+    getNextPredictionTime: () => mockGetNextPredictionTime()
   }
 }))
-
-import { apiClient } from '../utils/apiClient'
 
 describe('NextPredictionCountdown', () => {
   beforeEach(() => {
