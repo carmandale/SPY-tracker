@@ -233,13 +233,19 @@ export function DashboardScreen() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">Today's Prediction</h2>
-            <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full font-medium">
-              {dataSource}
-            </span>
-            {locked && (
-              <span className="ml-2 px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">
-                Locked
-              </span>
+            {dataSource === '❌ No Data Available' ? (
+              <NextPredictionCountdown />
+            ) : (
+              <>
+                <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full font-medium">
+                  {dataSource}
+                </span>
+                {locked && (
+                  <span className="ml-2 px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">
+                    Locked
+                  </span>
+                )}
+              </>
             )}
           </div>
           {getBiasIcon(prediction.bias)}
