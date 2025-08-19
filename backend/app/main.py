@@ -131,7 +131,9 @@ if os.path.exists(static_dir):
             raise HTTPException(status_code=404, detail=f"Asset not found: {full_path}")
         
         # Don't intercept API routes or documentation
-        if full_path.startswith("api/") or full_path in ["docs", "redoc", "openapi.json"]:
+        api_prefixes = ["api/", "admin/", "prediction", "day/", "capture/", "recompute/", 
+                       "history", "metrics", "market/", "suggestions/", "ai/", "scheduler/"]
+        if any(full_path.startswith(prefix) for prefix in api_prefixes) or full_path in ["docs", "redoc", "openapi.json", "healthz"]:
             raise HTTPException(status_code=404, detail="API route not found")
         
         # Serve index.html for all other routes (SPA routing)
