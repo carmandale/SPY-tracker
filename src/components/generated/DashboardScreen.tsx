@@ -82,6 +82,9 @@ export function DashboardScreen() {
               setDataSource('📝 Manual Prediction');
             }
             setLocked(!!data.locked);
+          } else {
+            console.log('Dashboard: predLow or predHigh missing, not setting prediction');
+            console.log('Dashboard: predLow is falsy?', !data.predLow, 'predHigh is falsy?', !data.predHigh);
           }
 
           // Update price data
