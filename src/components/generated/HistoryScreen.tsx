@@ -75,6 +75,37 @@ export function HistoryScreen() {
     load();
   }, []);
 
+  // Fetch AI predictions on demand when card is expanded
+  const fetchAIPredictions = async (pred: HistoricalPrediction) => {
+    // Only fetch if AI source and not already loaded
+    if ((pred.source === 'ai' || pred.source === 'ai_simulation') && 
+        pred.aiPredictions?.length === 0) {
+      setLoadingAI(pred.id);
+      try {
+        const aiData = await api.getAIPredictions(pred.date);
+        const aiPredictions = aiData.predictions.map((p: any) => ({
+          checkpoint: p.checkpoint,
+          predicted_price: p.predicted_price,
+          actual_price: p.actual_price,
+          confidence: p.confidence,
+          reasoning: p.reasoning,
+          prediction_error: p.prediction_error
+        }));
+        
+        // Update the specific item with AI predictions
+        setHistoricalData(prev => prev.map(item => 
+          item.id === pred.id 
+            ? { ...item, aiPredictions }
+            : item
+        ));
+      } catch (e) {
+        console.warn('Failed to fetch AI predictions for', pred.date);
+      } finally {
+        setLoadingAI(null);
+      }
+    }
+  };
+
   // Enhanced static sample data for testing when no real data available
   const staticData: HistoricalPrediction[] = [{
     id: '1',
