@@ -7,10 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### To Do
-- Add next prediction countdown indicator on dashboard (#30)
-- Add deployment version status display (#30)
 - Implement PWA configuration with manifest.json and service worker
 - Add backup/restore endpoints for data export/import
+
+## [2.1.0] - 2025-08-18
+### Added
+- Next prediction countdown indicator on dashboard (#30)
+  - Real-time countdown to next 8 AM CST AI prediction
+  - Smart detection of weekends and market holidays
+  - Different displays for market open/closed states
+  - Automatic 60-second refresh interval
+  - Replaces confusing "No Data Available" message during off-hours
+- Deployment version status display (#30)
+  - Version footer showing current version, commit, and environment
+  - Color-coded environment indicators (production/staging/development)
+  - Deployment date and build number tracking
+  - Link to GitHub commit for verification
+  - Fallback data when API is unavailable
+- Backend version and changelog API endpoints
+  - `/api/version` for deployment information
+  - `/api/scheduler/next-prediction` for countdown data
+  - `/api/changelog` for version history
+- Comprehensive US market holiday detection (2025-2026)
+- Enhanced error handling with fallback behavior
+- API client extensions with proper caching strategies
 
 ## [2.0.0] - 2025-08-16
 ### Production Deployment 🚀

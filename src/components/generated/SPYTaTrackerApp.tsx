@@ -98,5 +98,6 @@ export function SPYTaTrackerApp() {
           {renderScreen()}
         </motion.div>
       </main>
+      <VersionFooter />
     </div>;
 }
