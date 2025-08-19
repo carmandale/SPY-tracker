@@ -1,18 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
-import { NextPredictionCountdown } from './NextPredictionCountdown'
 
-// Create mock functions
-const mockGetNextPredictionTime = vi.fn()
-
-// Mock the entire apiClient module
+// Mock the entire apiClient module before any imports
 vi.mock('../utils/apiClient', () => {
   return {
     apiClient: {
-      getNextPredictionTime: mockGetNextPredictionTime
+      getNextPredictionTime: vi.fn()
     }
   }
 })
+
+import { NextPredictionCountdown } from './NextPredictionCountdown'
+import { apiClient } from '../utils/apiClient'
 
 describe('NextPredictionCountdown', () => {
   beforeEach(() => {
@@ -39,7 +38,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
+    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
 
     await act(async () => {
       render(<NextPredictionCountdown />)
@@ -61,7 +60,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
+    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
 
     await act(async () => {
       render(<NextPredictionCountdown />)
@@ -83,7 +82,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: true
     }
 
-    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
+    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
 
     await act(async () => {
       render(<NextPredictionCountdown />)
@@ -105,7 +104,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
+    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
 
     await act(async () => {
       render(<NextPredictionCountdown />)
@@ -116,7 +115,7 @@ describe('NextPredictionCountdown', () => {
     })
 
     // Update the mock for the next call
-    mockGetNextPredictionTime.mockResolvedValue({
+    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue({
       ...mockResponse,
       time_until: '2 hours, 29 minutes'
     })
@@ -132,7 +131,7 @@ describe('NextPredictionCountdown', () => {
   })
 
   it('handles API errors gracefully', async () => {
-    mockGetNextPredictionTime.mockRejectedValue(
+    vi.mocked(apiClient.getNextPredictionTime).mockRejectedValue(
       new Error('Network error')
     )
 
@@ -155,7 +154,7 @@ describe('NextPredictionCountdown', () => {
       is_holiday: false
     }
 
-    mockGetNextPredictionTime.mockResolvedValue(mockResponse)
+    vi.mocked(apiClient.getNextPredictionTime).mockResolvedValue(mockResponse)
 
     await act(async () => {
       render(<NextPredictionCountdown />)
