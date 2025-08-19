@@ -54,12 +54,34 @@ export interface DayResponse {
 }
 
 export interface NextPredictionResponse {
-  next_run: string;
-  next_run_cst: string;
-  time_until: string;
-  market_status: string;
+  next_prediction_time: string;
+  hours_until: number;
+  minutes_until: number;
+  is_market_open: boolean;
+  current_time: string;
+  timezone: string;
+  next_run_date: string;
   is_weekend: boolean;
   is_holiday: boolean;
+  holiday_name: string | null;
+  market_status: string;
+}
+
+export interface VersionResponse {
+  version: string;
+  commit: string;
+  environment: string;
+  deployment_date: string;
+  build_number: string;
+}
+
+export interface ChangelogResponse {
+  content: string;
+  versions: Array<{
+    version: string;
+    date: string;
+    changes: string[];
+  }>;
 }
 
 type SuggestionsResponse = JsonObject;
