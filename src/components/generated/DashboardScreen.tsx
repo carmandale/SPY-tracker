@@ -227,6 +227,18 @@ export function DashboardScreen() {
     };
     loadMetrics();
   }, []);
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+          <h3 className="text-red-400 font-semibold mb-2">Error Loading Dashboard</h3>
+          <p className="text-red-300">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return <div className="p-4 space-y-6">
       {/* Prediction Card */}
       <motion.div initial={{
