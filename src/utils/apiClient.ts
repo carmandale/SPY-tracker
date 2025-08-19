@@ -253,6 +253,9 @@ export const api = {
   },
 };
 
+// Export apiClient for component usage
+export const apiClient = api;
+
 /**
  * Prefetch critical data on app load
  */
