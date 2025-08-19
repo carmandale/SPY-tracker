@@ -11,6 +11,8 @@ describe('apiClient', () => {
 		vi.clearAllMocks();
 		// Clear any cached data
 		localStorage.clear();
+		// Clear the API cache
+		apiClient.clearCache();
 	});
 
 	afterEach(() => {
