@@ -75,7 +75,7 @@ export function VersionFooter() {
 					<span className="text-[#A7B3C5]">
 						SPY TA Tracker v{version.version}
 					</span>
-					{version.commit !== 'unknown' && (
+					{version.commit && version.commit !== 'unknown' && (
 						<a 
 							href={changelogLink}
 							target="_blank"
