@@ -268,6 +268,20 @@ export const api = {
     });
   },
 
+  // Version and deployment info
+  async getVersion() {
+    return apiRequest<VersionResponse>('/api/version', {
+      cacheTTL: 300000, // Cache for 5 minutes
+    });
+  },
+
+  // Changelog
+  async getChangelog() {
+    return apiRequest<ChangelogResponse>('/api/changelog', {
+      cacheTTL: 300000, // Cache for 5 minutes
+    });
+  },
+
   // Clear cache
   clearCache() {
     apiCache.clear();
