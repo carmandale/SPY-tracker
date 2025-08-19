@@ -57,7 +57,10 @@ export function DashboardScreen() {
 
   // Load today's data on component mount
   useEffect(() => {
+    console.log('🔄 DashboardScreen useEffect running');
     const loadTodayData = async () => {
+      console.log('📊 Starting loadTodayData function');
+      setError(null); // Clear any previous error
       try {
         const today = new Date().toLocaleDateString('en-CA', {
           timeZone: 'America/Chicago'
