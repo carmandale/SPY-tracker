@@ -612,11 +612,32 @@ export function HistoryScreen() {
                     </div>
                     
 {(() => {
-                      // Same scaling logic as compact view
-                      if (!prediction.actualLow || !prediction.actualHigh) {
+                      // Check if this is a past trading day
+                      const predDate = new Date(prediction.date);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      predDate.setHours(0, 0, 0, 0);
+                      
+                      const dayOfWeek = predDate.getDay();
+                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                      const isPastDate = predDate < today;
+                      
+                      if (isWeekend) {
                         return (
                           <div className="text-center py-3 text-[#A7B3C5] text-sm">
-                            Day incomplete - no range analysis available
+                            Weekend - market closed
+                          </div>
+                        );
+                      }
+                      
+                      // Same scaling logic as compact view
+                      if (!prediction.actualLow || !prediction.actualHigh) {
+                        const statusText = isPastDate 
+                          ? "Historical data not available"
+                          : "Day incomplete - waiting for market close";
+                        return (
+                          <div className="text-center py-3 text-[#A7B3C5] text-sm">
+                            {statusText}
                           </div>
                         );
                       }

@@ -7,11 +7,11 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-- [ ] 1. Fix Historical Data Completion Status Logic
-  - [ ] 1.1 Investigate current completion logic in HistoryView component
-  - [ ] 1.2 Query database to verify data exists for 2025-08-18
-  - [ ] 1.3 Fix the isPastTradingDay/isComplete logic to properly identify past dates
-  - [ ] 1.4 Add proper date comparison to distinguish past vs current trading days
+- [x] 1. Fix Historical Data Completion Status Logic
+  - [x] 1.1 Investigate current completion logic in HistoryView component
+  - [x] 1.2 Query database to verify data exists for 2025-08-18
+  - [x] 1.3 Fix the isPastTradingDay/isComplete logic to properly identify past dates
+  - [x] 1.4 Add proper date comparison to distinguish past vs current trading days
   - [ ] 1.5 Test with various dates to ensure correct status display
   - [ ] 1.6 Verify all tests pass
 
