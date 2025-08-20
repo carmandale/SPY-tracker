@@ -68,9 +68,5 @@
       ]
     }
   ],
-  "prefer_related_applications": false,
-  "id": "/",
-  "launch_handler": {
-    "client_mode": "focus-existing"
-  }
+  "prefer_related_applications": false
 }
