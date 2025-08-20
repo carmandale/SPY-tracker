@@ -216,10 +216,13 @@ def get_history(
             error = abs(pred.close - pred_mid)
         
         # Calculate actual low/high from available price points
-        # For complete days (with close), show full range
-        # For incomplete days, show None to avoid misleading data
-        if pred.close is not None:
-            # Day is complete, calculate actual range
+        # For past trading days, show whatever data we have
+        # For current/future days, only show if we have close (complete day)
+        from datetime import date as date_class
+        is_past_day = pred.date < date_class.today()
+        
+        if is_past_day:
+            # Past trading day - show whatever price data we have
             prices = []
             if pred.open is not None:
                 prices.append(pred.open)
@@ -227,14 +230,29 @@ def get_history(
                 prices.append(pred.noon)
             if pred.twoPM is not None:
                 prices.append(pred.twoPM)
-            prices.append(pred.close)
+            if pred.close is not None:
+                prices.append(pred.close)
             
             actual_low = min(prices) if prices else None
             actual_high = max(prices) if prices else None
         else:
-            # Day incomplete - don't show misleading partial range
-            actual_low = None
-            actual_high = None
+            # Current/future day - only show if complete (has close)
+            if pred.close is not None:
+                prices = []
+                if pred.open is not None:
+                    prices.append(pred.open)
+                if pred.noon is not None:
+                    prices.append(pred.noon)
+                if pred.twoPM is not None:
+                    prices.append(pred.twoPM)
+                prices.append(pred.close)
+                
+                actual_low = min(prices) if prices else None
+                actual_high = max(prices) if prices else None
+            else:
+                # Day incomplete - don't show misleading partial range
+                actual_low = None
+                actual_high = None
         
         history_items.append({
             "id": pred.id,

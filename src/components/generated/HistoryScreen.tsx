@@ -425,16 +425,38 @@ export function HistoryScreen() {
                     );
                   }
                   
-                  // Only show visualization if we have actual range data
+                  // Check if we have any price data for past days
+                  // For past days: show partial data if available; for current/future: need complete data
+                  const hasAnyPriceData = prediction.open || prediction.noon || prediction.twoPM || prediction.close;
+                  
                   if (!prediction.actualLow || !prediction.actualHigh) {
-                    const statusText = isPastDate 
-                      ? "Data missing for this date" 
-                      : "Day incomplete - waiting for market close";
-                    return (
-                      <div className="text-center py-2 text-[#A7B3C5] text-xs">
-                        {statusText}
-                      </div>
-                    );
+                    if (isPastDate && hasAnyPriceData) {
+                      // Past day with partial data - create range from available prices
+                      const availablePrices = [prediction.open, prediction.noon, prediction.twoPM, prediction.close].filter(p => p !== null && p !== undefined);
+                      if (availablePrices.length > 0) {
+                        // Use available prices as the actual range (will be handled below)
+                        const minPrice = Math.min(...availablePrices);
+                        const maxPrice = Math.max(...availablePrices);
+                        // Temporarily assign for visualization
+                        prediction.actualLow = minPrice;
+                        prediction.actualHigh = maxPrice;
+                      } else {
+                        return (
+                          <div className="text-center py-2 text-[#A7B3C5] text-xs">
+                            No price data available for this date
+                          </div>
+                        );
+                      }
+                    } else {
+                      const statusText = isPastDate 
+                        ? "No price data available for this date" 
+                        : "Day incomplete - waiting for market close";
+                      return (
+                        <div className="text-center py-2 text-[#A7B3C5] text-xs">
+                          {statusText}
+                        </div>
+                      );
+                    }
                   }
 
                   // Calculate price range for scaling
@@ -630,16 +652,37 @@ export function HistoryScreen() {
                         );
                       }
                       
-                      // Same scaling logic as compact view
+                      // Same logic as compact view for handling partial data
+                      const hasAnyPriceData = prediction.open || prediction.noon || prediction.twoPM || prediction.close;
+                      
                       if (!prediction.actualLow || !prediction.actualHigh) {
-                        const statusText = isPastDate 
-                          ? "Historical data not available"
-                          : "Day incomplete - waiting for market close";
-                        return (
-                          <div className="text-center py-3 text-[#A7B3C5] text-sm">
-                            {statusText}
-                          </div>
-                        );
+                        if (isPastDate && hasAnyPriceData) {
+                          // Past day with partial data - create range from available prices
+                          const availablePrices = [prediction.open, prediction.noon, prediction.twoPM, prediction.close].filter(p => p !== null && p !== undefined);
+                          if (availablePrices.length > 0) {
+                            // Use available prices as the actual range
+                            const minPrice = Math.min(...availablePrices);
+                            const maxPrice = Math.max(...availablePrices);
+                            // Temporarily assign for visualization
+                            prediction.actualLow = minPrice;
+                            prediction.actualHigh = maxPrice;
+                          } else {
+                            return (
+                              <div className="text-center py-3 text-[#A7B3C5] text-sm">
+                                No price data available for this date
+                              </div>
+                            );
+                          }
+                        } else {
+                          const statusText = isPastDate 
+                            ? "No price data available for this date"
+                            : "Day incomplete - waiting for market close";
+                          return (
+                            <div className="text-center py-3 text-[#A7B3C5] text-sm">
+                              {statusText}
+                            </div>
+                          );
+                        }
                       }
 
                       const allPrices = [prediction.low, prediction.high, prediction.actualLow, prediction.actualHigh];
