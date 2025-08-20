@@ -404,11 +404,35 @@ export function HistoryScreen() {
               {/* Enhanced range visualization with proper scaling */}
               <div className="mb-4">
                 {(() => {
-                  // Only show visualization if we have actual range data
-                  if (!prediction.actualLow || !prediction.actualHigh) {
+                  // Check if this is a past trading day (excluding weekends)
+                  const predDate = new Date(prediction.date);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
+                  predDate.setHours(0, 0, 0, 0);
+                  
+                  const dayOfWeek = predDate.getDay();
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  const isPastDate = predDate < today;
+                  
+                  // For past trading days, we should have data or show as incomplete
+                  // For current/future days, show as incomplete
+                  // For weekends, always show as weekend (not trading day)
+                  if (isWeekend) {
                     return (
                       <div className="text-center py-2 text-[#A7B3C5] text-xs">
-                        Day incomplete - no range comparison available
+                        Weekend - market closed
+                      </div>
+                    );
+                  }
+                  
+                  // Only show visualization if we have actual range data
+                  if (!prediction.actualLow || !prediction.actualHigh) {
+                    const statusText = isPastDate 
+                      ? "Data missing for this date" 
+                      : "Day incomplete - waiting for market close";
+                    return (
+                      <div className="text-center py-2 text-[#A7B3C5] text-xs">
+                        {statusText}
                       </div>
                     );
                   }
