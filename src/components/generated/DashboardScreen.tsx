@@ -36,6 +36,7 @@ export function DashboardScreen() {
   const [dataSource, setDataSource] = useState<string>('Loading...');
   const [locked, setLocked] = useState<boolean>(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [predictionTimestamp, setPredictionTimestamp] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [keyTimes, setKeyTimes] = useState<PriceData[]>([{
     time: '8:30',
@@ -93,6 +94,18 @@ export function DashboardScreen() {
               setDataSource('📊 Prediction');
             }
             setLocked(!!data.locked);
+            
+            // Set prediction timestamp
+            if (data.created_at) {
+              const timestamp = new Date(data.created_at);
+              const timeStr = timestamp.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                timeZone: 'America/Chicago'
+              });
+              setPredictionTimestamp(timeStr);
+              console.log('Dashboard: Prediction created at:', timeStr);
+            }
           } else {
             console.log('Dashboard: predLow or predHigh missing, not setting prediction');
             console.log('Dashboard: predLow is falsy?', !data.predLow, 'predHigh is falsy?', !data.predHigh);
@@ -276,6 +289,11 @@ export function DashboardScreen() {
                 <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-full font-medium">
                   {dataSource}
                 </span>
+                {predictionTimestamp && (
+                  <span className="text-xs text-gray-400">
+                    @ {predictionTimestamp} CST
+                  </span>
+                )}
                 {locked && (
                   <span className="ml-2 px-2 py-1 bg-green-600/10 text-green-400 text-xs rounded-full font-medium">
                     Locked

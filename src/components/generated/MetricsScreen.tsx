@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Target, Calendar, BarChart3, Award, AlertTriangle, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { api } from '../../utils/apiClient';
 interface MetricsPeriod {
   value: '7d' | '30d' | '90d' | 'all';
   label: string;
@@ -15,6 +16,46 @@ interface PerformanceMetric {
 }
 export function MetricsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const [rangeHitRate, setRangeHitRate] = useState<number>(73);
+  const [medianAbsError, setMedianAbsError] = useState<number>(1.25);
+  const [calibrationTip, setCalibrationTip] = useState<string>('');
+  const [accuracyGrade, setAccuracyGrade] = useState<string>('B+');
+  const [totalPredictions, setTotalPredictions] = useState<number>(47);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  // Load real metrics from API
+  useEffect(() => {
+    const loadMetrics = async () => {
+      setIsLoading(true);
+      try {
+        const metrics = await api.getMetrics();
+        
+        // Update metrics from API response
+        if (typeof metrics.rangeHit20 === 'number') {
+          setRangeHitRate(Math.round(metrics.rangeHit20 * 100));
+        }
+        if (typeof metrics.medianAbsErr20 === 'number') {
+          setMedianAbsError(metrics.medianAbsErr20);
+        }
+        if (metrics.calibration_tip) {
+          setCalibrationTip(metrics.calibration_tip);
+        }
+        if (metrics.accuracy_grade) {
+          setAccuracyGrade(metrics.accuracy_grade);
+        }
+        if (typeof metrics.count_days === 'number') {
+          setTotalPredictions(metrics.count_days);
+        }
+      } catch (error) {
+        console.error('Failed to load metrics:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadMetrics();
+  }, []);
+  
   const periods: MetricsPeriod[] = [{
     value: '7d',
     label: '7D'
@@ -30,26 +71,26 @@ export function MetricsScreen() {
   }];
   const performanceMetrics: PerformanceMetric[] = [{
     label: 'Range Hit Rate',
-    value: '73%',
+    value: `${rangeHitRate}%`,
     change: +5.2,
     icon: Target,
     color: 'text-[#16A34A]'
   }, {
     label: 'Median Abs Error',
-    value: '$1.25',
+    value: `$${medianAbsError.toFixed(2)}`,
     change: -0.15,
     icon: TrendingUp,
     color: 'text-[#E8ECF2]'
   }, {
-    label: 'Avg Range Width',
-    value: '$4.75',
-    change: +0.25,
-    icon: BarChart3,
+    label: 'Accuracy Grade',
+    value: accuracyGrade,
+    change: 0,
+    icon: Award,
     color: 'text-[#006072]'
   }, {
     label: 'Total Predictions',
-    value: '47',
-    change: +12,
+    value: totalPredictions.toString(),
+    change: 0,
     icon: Calendar,
     color: 'text-[#A7B3C5]'
   }];
@@ -121,22 +162,58 @@ export function MetricsScreen() {
     predictions: 2,
     accuracy: 50
   }] as any[];
-  const calibrationTips = [{
-    type: 'success',
-    title: 'Strong Performance',
-    message: 'Your bullish predictions are highly accurate. Keep leveraging technical analysis.',
-    icon: Award
-  }, {
-    type: 'warning',
-    title: 'FOMC Challenges',
-    message: 'Consider wider ranges on Fed days. Volatility often exceeds expectations.',
-    icon: AlertTriangle
-  }, {
-    type: 'info',
-    title: 'Range Optimization',
-    message: 'Your ranges are slightly narrow. Expanding by 10-15% could improve hit rate.',
-    icon: Info
-  }] as any[];
+  const calibrationTips = React.useMemo(() => {
+    const tips = [];
+    
+    // Add main calibration tip from API
+    if (calibrationTip) {
+      tips.push({
+        type: rangeHitRate >= 70 ? 'success' : rangeHitRate >= 50 ? 'info' : 'warning',
+        title: 'Current Calibration',
+        message: calibrationTip,
+        icon: rangeHitRate >= 70 ? Award : AlertTriangle
+      });
+    }
+    
+    // Add performance-based tip
+    if (rangeHitRate >= 75) {
+      tips.push({
+        type: 'success',
+        title: 'Excellent Accuracy',
+        message: 'Your predictions are highly accurate. Maintain current approach.',
+        icon: Award
+      });
+    } else if (rangeHitRate < 50) {
+      tips.push({
+        type: 'warning',
+        title: 'Accuracy Needs Improvement',
+        message: 'Consider widening your range predictions or adjusting bias assessment.',
+        icon: AlertTriangle
+      });
+    }
+    
+    // Add error-based tip
+    if (medianAbsError > 2.0) {
+      tips.push({
+        type: 'info',
+        title: 'Error Reduction',
+        message: `Median error of $${medianAbsError.toFixed(2)} is high. Focus on key support/resistance levels.`,
+        icon: Info
+      });
+    }
+    
+    // Default tip if no others
+    if (tips.length === 0) {
+      tips.push({
+        type: 'info',
+        title: 'Loading Metrics',
+        message: 'Gathering calibration data. Keep making predictions to improve accuracy.',
+        icon: Info
+      });
+    }
+    
+    return tips;
+  }, [calibrationTip, rangeHitRate, medianAbsError]);
   const getTipColor = (type: string) => {
     switch (type) {
       case 'success':

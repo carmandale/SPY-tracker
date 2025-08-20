@@ -38,6 +38,7 @@ export function HistoryScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalPrediction[]>([]);
+  const [loadingAI, setLoadingAI] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch historical data from new history endpoint
@@ -45,49 +46,26 @@ export function HistoryScreen() {
       try {
         const data = await api.getHistory(20, 0);
         
-        // Process items and fetch AI prediction data
-        const items: HistoricalPrediction[] = await Promise.all(
-          data.items.map(async (item: any) => {
-            let aiPredictions: CheckpointData[] = [];
-            
-            // Fetch AI predictions for this date if source is AI
-            if (item.source === 'ai' || item.source === 'ai_simulation') {
-              try {
-                const aiData = await api.getAIPredictions(item.date);
-                aiPredictions = aiData.predictions.map((pred: any) => ({
-                  checkpoint: pred.checkpoint,
-                  predicted_price: pred.predicted_price,
-                  actual_price: pred.actual_price,
-                  confidence: pred.confidence,
-                  reasoning: pred.reasoning,
-                  prediction_error: pred.prediction_error
-                }));
-              } catch (e) {
-                console.warn('Failed to fetch AI predictions for', item.date);
-              }
-            }
-            
-            return {
-              id: String(item.id),
-              date: item.date,
-              low: item.predLow ?? 0,
-              high: item.predHigh ?? 0,
-              bias: (item.bias || 'neutral') as any,
-              actualLow: item.actualLow ?? 0,
-              actualHigh: item.actualHigh ?? 0,
-              rangeHit: !!item.rangeHit,
-              notes: item.notes || `${item.source === 'ai' ? '🤖 AI prediction' : item.source === 'ai_simulation' ? '🔬 AI simulation' : '📝 Manual prediction'}`,
-              dayType: (item.dayType || 'normal') as any,
-              error: item.error ?? 0,
-              source: item.source,
-              open: item.open,
-              noon: item.noon,
-              twoPM: item.twoPM,
-              close: item.close,
-              aiPredictions
-            };
-          })
-        );
+        // Process items WITHOUT fetching AI predictions upfront
+        const items: HistoricalPrediction[] = data.items.map((item: any) => ({
+          id: String(item.id),
+          date: item.date,
+          low: item.predLow ?? 0,
+          high: item.predHigh ?? 0,
+          bias: (item.bias || 'neutral') as any,
+          actualLow: item.actualLow ?? 0,
+          actualHigh: item.actualHigh ?? 0,
+          rangeHit: !!item.rangeHit,
+          notes: item.notes || `${item.source === 'ai' ? '🤖 AI prediction' : item.source === 'ai_simulation' ? '🔬 AI simulation' : '📝 Manual prediction'}`,
+          dayType: (item.dayType || 'normal') as any,
+          error: item.error ?? 0,
+          source: item.source,
+          open: item.open,
+          noon: item.noon,
+          twoPM: item.twoPM,
+          close: item.close,
+          aiPredictions: [] // Start with empty, fetch on demand
+        }));
         
         setHistoricalData(items);
       } catch (e) {
@@ -96,6 +74,37 @@ export function HistoryScreen() {
     };
     load();
   }, []);
+
+  // Fetch AI predictions on demand when card is expanded
+  const fetchAIPredictions = async (pred: HistoricalPrediction) => {
+    // Only fetch if AI source and not already loaded
+    if ((pred.source === 'ai' || pred.source === 'ai_simulation') && 
+        pred.aiPredictions?.length === 0) {
+      setLoadingAI(pred.id);
+      try {
+        const aiData = await api.getAIPredictions(pred.date);
+        const aiPredictions = aiData.predictions.map((p: any) => ({
+          checkpoint: p.checkpoint,
+          predicted_price: p.predicted_price,
+          actual_price: p.actual_price,
+          confidence: p.confidence,
+          reasoning: p.reasoning,
+          prediction_error: p.prediction_error
+        }));
+        
+        // Update the specific item with AI predictions
+        setHistoricalData(prev => prev.map(item => 
+          item.id === pred.id 
+            ? { ...item, aiPredictions }
+            : item
+        ));
+      } catch (e) {
+        console.warn('Failed to fetch AI predictions for', pred.date);
+      } finally {
+        setLoadingAI(null);
+      }
+    }
+  };
 
   // Enhanced static sample data for testing when no real data available
   const staticData: HistoricalPrediction[] = [{
@@ -352,7 +361,13 @@ export function HistoryScreen() {
       }} transition={{
         delay: index * 0.1
       }} className="bg-[#12161D] rounded-xl border border-white/8 overflow-hidden">
-            <button onClick={() => setExpandedCard(expandedCard === prediction.id ? null : prediction.id)} className="w-full p-4 text-left hover:bg-white/2 transition-colors">
+            <button onClick={() => {
+              const isExpanding = expandedCard !== prediction.id;
+              setExpandedCard(isExpanding ? prediction.id : null);
+              if (isExpanding) {
+                fetchAIPredictions(prediction);
+              }
+            }} className="w-full p-4 text-left hover:bg-white/2 transition-colors">
               {/* Header with enhanced status indicators */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
