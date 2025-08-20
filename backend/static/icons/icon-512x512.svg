@@ -1,0 +1,5 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#006072"/>
+  <rect x="76.8" y="76.8" width="358.4" height="358.4" fill="#0B0D12" rx="51.2"/>
+  <text x="256" y="307.2" text-anchor="middle" fill="#E8ECF2" font-family="Arial, sans-serif" font-size="128" font-weight="bold">SPY</text>
+</svg>
