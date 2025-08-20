@@ -405,7 +405,7 @@ export function HistoryScreen() {
               <div className="mb-4">
                 {(() => {
                   // Check if this is a past trading day (excluding weekends)
-                  const predDate = new Date(prediction.date);
+                  const predDate = new Date(prediction.date + "T00:00:00");
                   const today = new Date();
                   today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
                   predDate.setHours(0, 0, 0, 0);
@@ -613,7 +613,7 @@ export function HistoryScreen() {
                     
 {(() => {
                       // Check if this is a past trading day
-                      const predDate = new Date(prediction.date);
+                      const predDate = new Date(prediction.date + "T00:00:00");
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
                       predDate.setHours(0, 0, 0, 0);
