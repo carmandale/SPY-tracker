@@ -32,6 +32,7 @@ from .routers import (
     scheduler as scheduler_router,
     version,
     database_fix,
+    health,
 )
 
 # Create FastAPI app
