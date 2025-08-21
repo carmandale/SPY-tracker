@@ -73,6 +73,7 @@ app.include_router(ai.router)
 app.include_router(scheduler_router.router)
 app.include_router(version.router)
 app.include_router(database_fix.router)
+app.include_router(health.router)
 
 
 # Health check endpoint
