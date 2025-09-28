@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement PWA configuration with manifest.json and service worker
 - Add backup/restore endpoints for data export/import
 
+### Added
+- Admin API responses now include `detail` key in error payloads for consistent client handling
+- `get_ny_now()` helper returning timezone-aware Eastern Time `datetime` for market-aware logic
+- Documentation updates covering QA/testing playbook for admin endpoints and scheduler logging
+
+### Fixed
+- Admin price refresh endpoint now respects `force` flag and avoids redundant overwrites
+- Scheduler tests aligned with structured logging to eliminate print-based assertions
+- Admin test suite refactored to use dependency overrides for reliable database mocking
+
 ## [2.1.0] - 2025-08-18
 ### Added
 - Next prediction countdown indicator on dashboard (#30)

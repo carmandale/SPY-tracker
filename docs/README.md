@@ -225,6 +225,28 @@ FRONTEND_ORIGIN=*
    docker stats
    ```
 
+## Quality Assurance & Testing
+
+### Admin Endpoint Hardening
+
+- Ensure the timezone helper `get_ny_now()` (in `backend/app/timezone_utils.py`) is available; it returns a timezone-aware `datetime` in Eastern Time for consistent market-day logic.
+- Validate error handling consistency by exercising endpoints that raise `spy_tracker_exception_handler` and FastAPI's built-in HTTP exceptions. All responses now include a `detail` field for predictable client parsing.
+- Run the focused pytest module to confirm admin routes remain healthy:
+  ```bash
+  source backend/.venv/bin/activate
+  pytest backend/tests/test_admin_endpoints.py -q
+  ```
+  Expect **7 passed** with Pydantic deprecation warnings (until migration to ConfigDict is completed).
+
+### Scheduler Status & Logging
+
+- Confirm the structured logging emitted by `backend/app/scheduler.py` by running the scheduler tests:
+  ```bash
+  source backend/.venv/bin/activate
+  pytest backend/tests/test_scheduler.py -q
+  ```
+- Use `/scheduler/status` or the production health check script (`scripts/production-health-check.py`) to verify scheduler metadata (status, job count, next run times) before Monday-market operations.
+
 ## Security Considerations
 
 ### Development Security

@@ -456,25 +456,24 @@ def refresh_official_prices_single_date(
         for checkpoint in checkpoints:
             price = ohlc_data[checkpoint]
             
-            # Validate the price
             if not default_provider.validate_official_price(price, settings.symbol, checkpoint):
                 continue
             
-            # Check if we should update
             current_price = getattr(pred, checkpoint)
-            if current_price is not None and not force:
-                continue  # Skip if price exists and not forcing
+            should_overwrite = force or current_price is None
+            if not should_overwrite and current_price == price:
+                continue
             
-            # Update the price
             setattr(pred, checkpoint, price)
             prices_updated.append({
                 "checkpoint": checkpoint,
                 "price": price,
-                "previous_price": current_price
+                "previous_price": current_price,
+                "overwritten": current_price is not None
             })
             
-            # Create price log entry
-            db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
+            if should_overwrite:
+                db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
         
         # Update intraday prices (noon, twoPM) using minute data
         intraday_checkpoints = ['noon', 'twoPM']
@@ -484,21 +483,21 @@ def refresh_official_prices_single_date(
             if price is None or not default_provider.validate_official_price(price, settings.symbol, checkpoint):
                 continue
             
-            # Check if we should update
             current_price = getattr(pred, checkpoint)
-            if current_price is not None and not force:
+            should_overwrite = force or current_price is None
+            if not should_overwrite and current_price == price:
                 continue
             
-            # Update the price
             setattr(pred, checkpoint, price)
             prices_updated.append({
                 "checkpoint": checkpoint,
                 "price": price,
-                "previous_price": current_price
+                "previous_price": current_price,
+                "overwritten": current_price is not None
             })
             
-            # Create price log entry
-            db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
+            if should_overwrite:
+                db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
         
         # Update derived fields
         _update_derived_fields(pred)

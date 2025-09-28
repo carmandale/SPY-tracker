@@ -164,6 +164,11 @@ def get_current_cst_time() -> datetime:
     return datetime.now(CT)
 
 
+def get_ny_now() -> datetime:
+    """Return the current time in New York (Eastern Time)."""
+    return datetime.now(ET)
+
+
 def get_next_market_open(current_time: Optional[datetime] = None) -> datetime:
     """
     Get the next market open time (8:00 AM CST on trading days).

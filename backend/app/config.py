@@ -59,6 +59,14 @@ class Settings(BaseSettings):
                 "message": "Using configured database URL (intelligent detection disabled)"
             }
         
+        if not self.database_url:
+            return {
+                "database_url": self.database_url,
+                "database_type": "sqlite" if self.database_url.startswith("sqlite") else "postgresql",
+                "preferred_database_used": True,
+                "message": "No DATABASE_URL configured; using default"
+            }
+        
         try:
             from .database_utils import get_database_config
             return get_database_config()
