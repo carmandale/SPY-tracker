@@ -12,8 +12,15 @@ import re
 import logging
 from typing import Dict, Any, Optional, Tuple
 from urllib.parse import urlparse
-import psycopg2
+from pathlib import Path
 import sqlite3
+
+try:
+    import psycopg2  # type: ignore
+    from psycopg2 import OperationalError as PsycopgOperationalError
+except ImportError:  # pragma: no cover - optional dependency
+    psycopg2 = None  # type: ignore
+    PsycopgOperationalError = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +70,30 @@ def parse_database_url(url: str) -> Dict[str, Any]:
     }
 
 
+def _build_sqlite_metadata(sqlite_url: str) -> Dict[str, Any]:
+    """Normalize SQLite URL metadata without relying on string replacement."""
+    parsed = urlparse(sqlite_url)
+    if parsed.scheme != "sqlite":
+        raise ValueError("Not a SQLite URL")
+
+    # Handle sqlite:///relative.db and sqlite:////absolute.db forms
+    if parsed.netloc:
+        path_part = f"{parsed.netloc}{parsed.path}".lstrip("/")
+    else:
+        path_part = parsed.path.lstrip("/")
+
+    return {
+        "scheme": "sqlite",
+        "database": path_part or None,
+        "path": parsed.path or None,
+    }
+
+
 def check_postgres_health(database_url: str, timeout: int = 5) -> bool:
     """Check if PostgreSQL database is healthy and accessible."""
+    if not psycopg2:
+        logger.debug("psycopg2 not installed; skipping PostgreSQL health check")
+        return False
     try:
         parsed = parse_database_url(database_url)
         
@@ -87,7 +116,7 @@ def check_postgres_health(database_url: str, timeout: int = 5) -> bool:
         conn.close()
         return result[0] == 1
         
-    except Exception as e:
+    except (PsycopgOperationalError, Exception) as e:  # type: ignore[arg-type]
         logger.debug(f"PostgreSQL health check failed: {e}")
         return False
 
@@ -104,7 +133,7 @@ def container_exists(container_name: str) -> bool:
         
         return result.returncode == 0 and bool(result.stdout.strip())
         
-    except Exception as e:
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
         logger.error(f"Error checking container existence: {e}")
         return False
 
@@ -121,7 +150,7 @@ def is_container_running(container_name: str) -> bool:
         
         return result.returncode == 0 and bool(result.stdout.strip())
         
-    except Exception as e:
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
         logger.error(f"Error checking container status: {e}")
         return False
 
@@ -175,7 +204,7 @@ def start_postgres_container(
                 logger.error(f"Failed to create container: {result.stderr}")
                 return False
                 
-    except Exception as e:
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
         logger.error(f"Error starting PostgreSQL container: {e}")
         return False
 
@@ -197,7 +226,7 @@ def stop_postgres_container(container_name: str = "spydb") -> bool:
             logger.error(f"Failed to stop container: {result.stderr}")
             return False
             
-    except Exception as e:
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
         logger.error(f"Error stopping container: {e}")
         return False
 
@@ -252,7 +281,7 @@ def verify_database_connection(database_url: str) -> bool:
         
         return False
         
-    except Exception as e:
+    except (sqlite3.Error, OSError, RuntimeError) as e:
         logger.error(f"Database connection verification failed: {e}")
         return False
 
@@ -327,7 +356,7 @@ def is_docker_available() -> bool:
             timeout=10
         )
         return result.returncode == 0
-    except Exception:
+    except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
         return False
 
 
@@ -606,10 +635,10 @@ def resolve_database_url(preferred_url: str, fallback_url: str, *, assume_prefer
             fallback_parse_error = e
             # Provide minimal metadata for common SQLite fallback even when parsing fails (e.g., patched tests)
             if fallback_url.startswith("sqlite"):
-                fallback_parsed = {
-                    "scheme": "sqlite",
-                    "database": fallback_url.replace("sqlite:///", "") or None,
-                }
+                try:
+                    fallback_parsed = _build_sqlite_metadata(fallback_url)
+                except Exception:
+                    fallback_parsed = None
     
     # Ensure we have at least one valid URL
     if not preferred_parsed and not fallback_parsed:
@@ -734,7 +763,11 @@ def create_engine_with_fallback(preferred_url: str, fallback_url: str, *, assume
     
     try:
         # Create engine
-        engine = sqlalchemy.create_engine(database_url, connect_args=connect_args)
+        engine = sqlalchemy.create_engine(
+            database_url,
+            connect_args=connect_args,
+            pool_pre_ping=True,
+        )
         
         # Test connection
         with engine.connect() as conn:

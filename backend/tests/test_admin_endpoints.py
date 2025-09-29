@@ -13,7 +13,9 @@ import pytest
 # Import the FastAPI app to create test client
 from app.main import app
 from app.models import DailyPrediction, PriceLog
+from app.timezone_utils import get_ny_now
 from app.database import get_db
+from app.routers.admin import require_admin
 
 
 @contextmanager
@@ -36,6 +38,7 @@ def override_get_db_dependency(mock_db: Session):
 class TestAdminEndpoints(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
+        app.dependency_overrides[require_admin] = lambda: None
         
     def test_refresh_official_prices_single_date_success(self):
         """Test refresh official prices for a single date"""
@@ -257,6 +260,9 @@ class TestAdminEndpoints(unittest.TestCase):
         self.assertEqual(len(response_data["recent_captures"]), 0)
         self.assertEqual(response_data["capture_quality"]["completeness_rate"], 0.0)
         self.assertEqual(response_data["total_price_logs"], 0)
+
+    def tearDown(self):
+        app.dependency_overrides.pop(require_admin, None)
 
 
 if __name__ == "__main__":

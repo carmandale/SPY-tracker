@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     
     # Server configuration
     api_port: int = 8000
+
+    # Administrative security
+    admin_api_token: str = ""
     
     # Database configuration flags
     use_intelligent_database_detection: bool = True
