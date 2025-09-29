@@ -130,8 +130,8 @@ class YFinanceProvider(PriceProvider):
             return market_open <= current_time <= market_close
             
         except Exception:
-            # Conservative fallback - assume market is open during likely hours
-            return True
+            # Conservative fallback - assume market is closed on error
+            return False
     
     def _cache_price(self, symbol: str, price: float) -> None:
         """Cache price data with timestamp"""

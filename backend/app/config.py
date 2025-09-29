@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     
     # Server configuration
     api_port: int = 8000
+
+    # Administrative security
+    admin_api_token: str = ""
     
     # Database configuration flags
     use_intelligent_database_detection: bool = True
@@ -57,6 +60,14 @@ class Settings(BaseSettings):
                 "database_type": "sqlite" if self.database_url.startswith("sqlite") else "postgresql",
                 "preferred_database_used": True,
                 "message": "Using configured database URL (intelligent detection disabled)"
+            }
+        
+        if not self.database_url:
+            return {
+                "database_url": self.database_url,
+                "database_type": "sqlite" if self.database_url.startswith("sqlite") else "postgresql",
+                "preferred_database_used": True,
+                "message": "No DATABASE_URL configured; using default"
             }
         
         try:

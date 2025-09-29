@@ -3,9 +3,10 @@ Administrative endpoints for SPY Tracker.
 Handles data backfilling, migrations, cleanup, maintenance operations, and emergency recovery.
 """
 
+import os
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Path, Body, Query, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import yfinance as yf
@@ -17,10 +18,32 @@ from ..config import settings
 from ..capture import refresh_actuals_for_date
 from ..ai_predictor import AIPredictor, ai_predictor
 from ..providers import default_provider
+from ..timezone_utils import get_ny_now
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _resolve_admin_token() -> Optional[str]:
+    """Return configured admin token from env or settings."""
+    env_token = os.environ.get("ADMIN_API_TOKEN") or os.environ.get("ADMIN_TOKEN")
+    if env_token:
+        return env_token
+    return settings.admin_api_token or None
+
+
+def require_admin(request: Request):
+    """Simple token-based guard for administrative endpoints."""
+    token = request.headers.get("x-admin-token") or request.query_params.get("admin_token")
+    expected = _resolve_admin_token()
+
+    if not expected:
+        # No token configured; treat as locked down
+        raise HTTPException(status_code=503, detail="Admin tooling disabled: missing admin token configuration")
+
+    if token != expected:
+        raise HTTPException(status_code=401, detail="Invalid admin credentials")
 
 # Store last database error for debugging
 last_db_error = None
@@ -34,7 +57,7 @@ def _update_derived_fields(pred: DailyPrediction) -> None:
 
 
 @router.get("/debug/last-error")
-def get_last_database_error():
+def get_last_database_error(_: None = Depends(require_admin)):
     """Get the last database error for debugging."""
     global last_db_error
     if last_db_error:
@@ -43,7 +66,7 @@ def get_last_database_error():
 
 
 @router.get("/debug/test-db")
-def test_database_connection():
+def test_database_connection(_: None = Depends(require_admin)):
     """Test database connection directly."""
     from ..database import SessionLocal
     from sqlalchemy import select, text
@@ -62,7 +85,11 @@ def test_database_connection():
 
 
 @router.get("/debug/day-error/{day}")
-def debug_day_endpoint_with_traceback(day: date, db: Session = Depends(get_db)):
+def debug_day_endpoint_with_traceback(
+    day: date,
+    _: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     """Debug the /day/{day} endpoint and capture full Python traceback if there's an exception."""
     import traceback
     import sys
@@ -110,7 +137,11 @@ def debug_day_endpoint_with_traceback(day: date, db: Session = Depends(get_db)):
 
 
 @router.get("/debug/test-endpoint/{endpoint:path}")
-def test_endpoint_with_traceback(endpoint: str, db: Session = Depends(get_db)):
+def test_endpoint_with_traceback(
+    endpoint: str,
+    _: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     """Test any endpoint and capture full traceback if it fails."""
     import traceback
     import sys
@@ -248,7 +279,7 @@ def admin_simulate_simple(num_days: int = Path(..., ge=1, le=60), db: Session = 
     try:
         symbol = settings.symbol
         predictor = AIPredictor()
-        today = datetime.now().date()
+        today = get_ny_now().date()
         start = today - timedelta(days=num_days * 3)
         spy = yf.Ticker(symbol)
         hist = spy.history(start=start, end=today + timedelta(days=1), interval="1d")
@@ -388,7 +419,7 @@ def analyze_ai_prediction_duplicates(db: Session = Depends(get_db)):
 @router.post("/cleanup-future-data")
 def cleanup_future_data(db: Session = Depends(get_db)):
     """Remove any predictions or AI predictions for future dates."""
-    today = datetime.now().date()
+    today = get_ny_now().date()
     
     # Delete future DailyPredictions
     future_preds = db.query(DailyPrediction).filter(DailyPrediction.date > today).all()
@@ -456,25 +487,24 @@ def refresh_official_prices_single_date(
         for checkpoint in checkpoints:
             price = ohlc_data[checkpoint]
             
-            # Validate the price
             if not default_provider.validate_official_price(price, settings.symbol, checkpoint):
                 continue
             
-            # Check if we should update
             current_price = getattr(pred, checkpoint)
-            if current_price is not None and not force:
-                continue  # Skip if price exists and not forcing
+            should_overwrite = force or current_price is None
+            if not should_overwrite and current_price == price:
+                continue
             
-            # Update the price
             setattr(pred, checkpoint, price)
             prices_updated.append({
                 "checkpoint": checkpoint,
                 "price": price,
-                "previous_price": current_price
+                "previous_price": current_price,
+                "overwritten": current_price is not None
             })
             
-            # Create price log entry
-            db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
+            if should_overwrite:
+                db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
         
         # Update intraday prices (noon, twoPM) using minute data
         intraday_checkpoints = ['noon', 'twoPM']
@@ -484,21 +514,21 @@ def refresh_official_prices_single_date(
             if price is None or not default_provider.validate_official_price(price, settings.symbol, checkpoint):
                 continue
             
-            # Check if we should update
             current_price = getattr(pred, checkpoint)
-            if current_price is not None and not force:
+            should_overwrite = force or current_price is None
+            if not should_overwrite and current_price == price:
                 continue
             
-            # Update the price
             setattr(pred, checkpoint, price)
             prices_updated.append({
                 "checkpoint": checkpoint,
                 "price": price,
-                "previous_price": current_price
+                "previous_price": current_price,
+                "overwritten": current_price is not None
             })
             
-            # Create price log entry
-            db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
+            if should_overwrite:
+                db.add(PriceLog(date=target_date, checkpoint=checkpoint, price=price))
         
         # Update derived fields
         _update_derived_fields(pred)
@@ -632,7 +662,7 @@ def get_price_capture_status(
     """
     try:
         # Get recent predictions
-        cutoff_date = date.today() - timedelta(days=days)
+        cutoff_date = get_ny_now().date() - timedelta(days=days)
         recent_predictions = (
             db.query(DailyPrediction)
             .filter(DailyPrediction.date >= cutoff_date)
@@ -693,7 +723,7 @@ def get_price_capture_status(
                 "days_requested": days,
                 "days_analyzed": total_analyzed,
                 "start_date": cutoff_date.isoformat(),
-                "end_date": date.today().isoformat()
+                "end_date": get_ny_now().date().isoformat()
             },
             "capture_quality": {
                 "completeness_rate": completeness_rate,

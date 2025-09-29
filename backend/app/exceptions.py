@@ -60,6 +60,7 @@ async def spy_tracker_exception_handler(request: Request, exc: SPYTrackerExcepti
     return JSONResponse(
         status_code=exc.status_code,
         content={
+            "detail": exc.message,
             "error": {
                 "message": exc.message,
                 "type": exc.__class__.__name__,
@@ -83,6 +84,7 @@ async def validation_exception_handler(request: Request, exc: ValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
+            "detail": "Validation failed for the provided data",
             "error": {
                 "message": "Validation failed for the provided data",
                 "type": "ValidationError",
@@ -94,11 +96,13 @@ async def validation_exception_handler(request: Request, exc: ValidationError):
 
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Handle HTTPExceptions with consistent format"""
+    detail_message = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
     return JSONResponse(
         status_code=exc.status_code,
         content={
+            "detail": detail_message,
             "error": {
-                "message": exc.detail,
+                "message": detail_message,
                 "type": "HTTPException",
                 "details": {}
             }
@@ -112,6 +116,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
+            "detail": "An unexpected error occurred. Please try again later.",
             "error": {
                 "message": "An unexpected error occurred. Please try again later.",
                 "type": "InternalServerError",
@@ -130,6 +135,7 @@ def create_error_response(
     return JSONResponse(
         status_code=status_code,
         content={
+            "detail": message,
             "error": {
                 "message": message,
                 "details": details or {}

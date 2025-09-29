@@ -199,18 +199,18 @@ class TestScheduler(unittest.TestCase):
         
         with patch('app.scheduler.default_provider') as mock_provider:
             with patch('app.scheduler.settings') as mock_settings:
-                with patch('builtins.print') as mock_print:
+                with patch('app.scheduler.logger') as mock_logger:
                     mock_provider.get_official_checkpoint_price.return_value = test_price
                     mock_provider.validate_official_price.return_value = True
                     mock_settings.symbol = 'SPY'
                     mock_settings.timezone = 'America/Chicago'
-                    
+
                     # Execute capture_price
                     capture_price(self.mock_db, 'close', date(2025, 8, 15))
-        
-        # Verify successful capture was logged
-        mock_print.assert_called_with(
-            f"✅ Captured official close price ${test_price:.2f} for SPY on 2025-08-15"
+
+        # Verify successful capture was logged via logger
+        mock_logger.info.assert_called_with(
+            f"Captured official close price ${test_price:.2f} for SPY on 2025-08-15"
         )
 
 
