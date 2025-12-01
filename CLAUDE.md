@@ -42,8 +42,9 @@ When asked to work on this codebase:
 - **Backend:** Use `uv` (NOT pip) - uv.lock is committed
 
 ### Development Servers
-- **Frontend:** Port 3000 - `yarn dev`
+- **Frontend:** Port 3000 - `yarn dev` (Vite development server)
 - **Backend:** Port 8000 - `cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000`
+- **Quick Start:** Use `bash start.sh` to run both servers simultaneously
 
 ### Database Policy (Production)
 - **Production:** PostgreSQL on Render (managed service) - **LIVE**
@@ -71,13 +72,30 @@ When asked to work on this codebase:
 - **Real-time Visualization:** Charts showing predicted bands vs actual price movement
 - **Market Data Integration:** Live SPY pricing, market status, volatility data
 
+### Tech Stack Details
+- **Frontend:** React 19.0.0 + TypeScript 5.7.2 + Vite 6.2.0 + Tailwind CSS 4.0.9
+- **Backend:** FastAPI 0.111+ + SQLAlchemy 2.0+ + Pydantic 2.9+ + Python 3.10+
+- **Database:** PostgreSQL (production) / SQLite (local fallback)
+- **AI/ML:** OpenAI GPT-5 + yfinance 0.2.65+ for market data
+- **Scheduling:** APScheduler 3.10+ for automated price capture
+- **Testing:** Vitest (frontend) + pytest (backend) + Playwright (E2E)
+- **UI Components:** shadcn/ui + Recharts + Framer Motion + lucide-react
+
+### Architecture Overview
+- **API Routers:** 10 modular routers handling 45+ endpoints
+- **Database Models:** DailyPrediction, PriceLog, AIPrediction, BaselineModel, ModelPerformance
+- **Scheduler Jobs:** 6 automated jobs (8AM AI predictions, market price captures)
+- **Mobile-First:** PWA-ready with responsive design and touch optimization
+
 ### Key Project Files
 - **Product Requirements:** @SPY-tracker-PRD.md
 - **Deployment Status:** @DEPLOYMENT_STATUS.md (production environment details)
-- **Backend API:** @backend/app/main.py (40+ endpoints with full error handling)
-- **Database:** @backend/app/models.py (supports both SQLite and PostgreSQL)
-- **Frontend:** @src/App.tsx (React 19, mobile-optimized, loading states)
-- **AI System:** @backend/app/ai_predictor.py (GPT-5 with technical indicators)
-- **Performance:** @src/utils/performance.ts (caching, debouncing, lazy loading)
+- **Backend API:** @backend/app/main.py (45+ endpoints with comprehensive error handling)
+- **Database Models:** @backend/app/models.py (PostgreSQL + SQLite dual support)
+- **Frontend App:** @src/App.tsx + @src/components/generated/SPYTaTrackerApp.tsx
+- **AI Prediction System:** @backend/app/ai_predictor.py (GPT-5 with technical indicators)
+- **Performance Utilities:** @src/utils/performance.ts (caching, debouncing, lazy loading)
 - **Error Handling:** @backend/app/exceptions.py (comprehensive exception system)
+- **Configuration:** @backend/app/config.py (intelligent database detection)
+- **Startup Logic:** @backend/app/startup.py (database init, scheduler, AI warmup)
 EOF < /dev/null
