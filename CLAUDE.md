@@ -9,8 +9,10 @@
 - **Decision History:** @.agent-os/product/decisions.md
 
 ### Development Standards
-- **Code Style:** @~/.agent-os/standards/code-style.md
-- **Best Practices:** @~/.agent-os/standards/best-practices.md
+- Follow established patterns in the codebase
+- Mobile-first design principles
+- Error handling with comprehensive exception system
+- Performance optimization (caching, debouncing, lazy loading)
 
 ### Project Management
 - **Active Specs:** None - all specs completed, including PostgreSQL migration
@@ -40,10 +42,12 @@ When asked to work on this codebase:
 ### Package Managers (CRITICAL)
 - **Frontend:** Use `yarn` (NOT npm) - yarn.lock is committed
 - **Backend:** Use `uv` (NOT pip) - uv.lock is committed
+- **Status:** ✅ Both lock files verified and present
 
 ### Development Servers
-- **Frontend:** Port 3000 - `yarn dev`
+- **Frontend:** Port 3000 - `yarn dev` (Vite 6.2.0 dev server)
 - **Backend:** Port 8000 - `cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000`
+- **Proxy:** Frontend proxies API calls to backend automatically
 
 ### Database Policy (Production)
 - **Production:** PostgreSQL on Render (managed service) - **LIVE**
@@ -70,14 +74,52 @@ When asked to work on this codebase:
 - **Historical Analysis:** Complete prediction history with accuracy metrics and trends
 - **Real-time Visualization:** Charts showing predicted bands vs actual price movement
 - **Market Data Integration:** Live SPY pricing, market status, volatility data
+- **Advanced Analytics:** RSI, MACD, Bollinger Bands, volume analysis
+- **Health Monitoring:** Comprehensive health checks and error handling
 
 ### Key Project Files
 - **Product Requirements:** @SPY-tracker-PRD.md
 - **Deployment Status:** @DEPLOYMENT_STATUS.md (production environment details)
-- **Backend API:** @backend/app/main.py (40+ endpoints with full error handling)
-- **Database:** @backend/app/models.py (supports both SQLite and PostgreSQL)
-- **Frontend:** @src/App.tsx (React 19, mobile-optimized, loading states)
+- **Backend API:** @backend/app/main.py (150+ endpoints across 9 routers with full error handling)
+- **Database Models:** @backend/app/models.py (supports both SQLite and PostgreSQL)
+- **Frontend:** @src/App.tsx (React 19.0.0, mobile-optimized, loading states)
 - **AI System:** @backend/app/ai_predictor.py (GPT-5 with technical indicators)
 - **Performance:** @src/utils/performance.ts (caching, debouncing, lazy loading)
 - **Error Handling:** @backend/app/exceptions.py (comprehensive exception system)
+- **API Routers:** @backend/app/routers/ (9 router files: admin, ai, database_fix, health, market, predictions, scheduler, suggestions, version)
+
+## Technical Stack Details
+
+### Frontend Technologies
+- **React:** 19.0.0 with TypeScript 5.7.2
+- **Build Tool:** Vite 6.2.0
+- **Styling:** Tailwind CSS 4.0.9 with animations
+- **UI Components:** shadcn/ui components, Lucide React icons
+- **Charts:** Recharts 2.15.1
+- **Forms:** React Hook Form 7.54.2 with Zod 3.24.2 validation
+- **Animation:** Framer Motion 12.4.10
+- **State Management:** React hooks and context
+
+### Backend Technologies
+- **Framework:** FastAPI 0.111+
+- **Server:** Uvicorn with standard extras
+- **Database:** SQLAlchemy 2.0+ with PostgreSQL/SQLite support
+- **Scheduler:** APScheduler 3.10+ for market hours automation
+- **Market Data:** yfinance 0.2.65+ for live SPY data
+- **AI Integration:** OpenAI API 1.46+ with GPT-5
+- **Data Analysis:** pandas 2.3.1+, numpy 2.2.6+
+- **Database Driver:** psycopg2-binary for PostgreSQL
+
+### Testing & Quality
+- **Frontend Testing:** Vitest 3.2.4 with @testing-library/react 16.3.0
+- **E2E Testing:** Playwright 1.55.0 with comprehensive test suites
+- **Backend Testing:** pytest 8.4.1+ with comprehensive test coverage
+- **Code Quality:** ESLint 9.21.0, Prettier 3.5.3
+- **Type Checking:** TypeScript strict mode
+
+### Development Tools
+- **Package Managers:** yarn (frontend), uv (backend)
+- **Environment:** Docker Compose for PostgreSQL development
+- **CI/CD:** GitHub Actions with automated testing
+- **Monitoring:** Health check endpoints and error tracking
 EOF < /dev/null
